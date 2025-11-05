@@ -1,5 +1,7 @@
 package com.parent.pg.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+
 import jakarta.persistence.*;
 
 @Entity
@@ -14,6 +16,7 @@ public class Amenity {
 
 	@ManyToOne
 	@JoinColumn(name = "pg_id")
+	@JsonBackReference
 	private PgEntity pg;
 
 	public Amenity() {

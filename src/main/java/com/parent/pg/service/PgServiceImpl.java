@@ -39,6 +39,14 @@ public class PgServiceImpl implements PgService {
         pg.setRules(pgDetails.getRules());
         pg.setAvailability(pgDetails.getAvailability());
         pg.setAddress(pgDetails.getAddress());
+
+        // Optional updates (only if you allow updating relationships)
+        if (pgDetails.getAmenities() != null)
+            pg.setAmenities(pgDetails.getAmenities());
+
+        if (pgDetails.getPhotos() != null)
+            pg.setPhotos(pgDetails.getPhotos());
+
         return pgRepository.save(pg);
     }
 

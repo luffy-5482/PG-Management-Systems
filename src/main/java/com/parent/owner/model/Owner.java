@@ -2,6 +2,7 @@ package com.parent.owner.model;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.parent.pg.model.PgEntity;
 
 import jakarta.persistence.CascadeType;
@@ -27,6 +28,7 @@ public class Owner {
 	private String password; // For future login system
 
 	@OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true)
+	@JsonManagedReference
 	private List<PgEntity> pgs;
 
 	public Owner() {

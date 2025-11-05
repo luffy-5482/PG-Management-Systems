@@ -1,8 +1,9 @@
 package com.parent.pg.model;
 
-import java.util.List;	
+import java.util.List;
 
-
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.parent.owner.model.Owner;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Embedded;
@@ -24,7 +25,7 @@ public class PgEntity {
 	private Long id;
 
 	private String name;
-	private String type; 
+	private String type;
 	private Double price;
 	private String rules;
 	private Boolean availability;
@@ -34,13 +35,28 @@ public class PgEntity {
 
 	@ManyToOne
 	@JoinColumn(name = "owner_id", nullable = false)
+	@JsonBackReference
 	private Owner owner;
 
 	@OneToMany(mappedBy = "pg", cascade = CascadeType.ALL, orphanRemoval = true)
+	@JsonManagedReference
 	private List<Amenity> amenities;
 
 	@OneToMany(mappedBy = "pg", cascade = CascadeType.ALL, orphanRemoval = true)
+	@JsonManagedReference
 	private List<PropertyPhoto> photos;
+
+	@OneToMany(mappedBy = "pg", cascade = CascadeType.ALL, orphanRemoval = true)
+	@JsonManagedReference(value = "pg-floor")
+	private List<Floor> floors;
+
+	public List<Floor> getFloors() {
+		return floors;
+	}
+
+	public void setFloors(List<Floor> floors) {
+		this.floors = floors;
+	}
 
 	// Constructors
 	public PgEntity() {
