@@ -5,7 +5,8 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import com.parent.pg.model.PropertyPhoto;
+import com.parent.pg.dto.PropertyPhotoRequest;
+import com.parent.pg.dto.PropertyPhotoResponse;
 import com.parent.pg.service.PropertyPhotoService;
 
 @RestController
@@ -17,23 +18,23 @@ public class PropertyPhotoController {
     private PropertyPhotoService propertyPhotoService;
 
     @GetMapping
-    public List<PropertyPhoto> getAllPhotos() {
+    public List<PropertyPhotoResponse> getAllPhotos() {
         return propertyPhotoService.getAllPhotos();
     }
 
     @GetMapping("/{id}")
-    public PropertyPhoto getPhotoById(@PathVariable Long id) {
+    public PropertyPhotoResponse getPhotoById(@PathVariable Long id) {
         return propertyPhotoService.getPhotoById(id);
     }
 
     @PostMapping
-    public PropertyPhoto createPhoto(@RequestBody PropertyPhoto propertyPhoto) {
-        return propertyPhotoService.createPhoto(propertyPhoto);
+    public PropertyPhotoResponse createPhoto(@RequestBody PropertyPhotoRequest request) {
+        return propertyPhotoService.createPhoto(request);
     }
 
     @PutMapping("/{id}")
-    public PropertyPhoto updatePhoto(@PathVariable Long id, @RequestBody PropertyPhoto propertyPhoto) {
-        return propertyPhotoService.updatePhoto(id, propertyPhoto);
+    public PropertyPhotoResponse updatePhoto(@PathVariable Long id, @RequestBody PropertyPhotoRequest request) {
+        return propertyPhotoService.updatePhoto(id, request);
     }
 
     @DeleteMapping("/{id}")

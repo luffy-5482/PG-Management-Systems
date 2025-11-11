@@ -49,6 +49,17 @@ public class PgEntity {
 	@OneToMany(mappedBy = "pg", cascade = CascadeType.ALL, orphanRemoval = true)
 	@JsonManagedReference(value = "pg-floor")
 	private List<Floor> floors;
+	
+	public List<RoomEntity> getRooms() {
+		return rooms;
+	}
+
+	public void setRooms(List<RoomEntity> rooms) {
+		this.rooms = rooms;
+	}
+	@OneToMany(mappedBy = "pg", cascade = CascadeType.ALL, orphanRemoval = true)
+	@JsonManagedReference(value = "pg-room")
+	private List<RoomEntity> rooms; // Add this
 
 	public List<Floor> getFloors() {
 		return floors;

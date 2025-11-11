@@ -1,13 +1,13 @@
 package com.parent.owner.service;
 
-import java.util.List;
-
-import com.parent.owner.model.Owner;
+import java.util.List;	
+import com.parent.owner.dto.OwnerRequest;
+import com.parent.owner.dto.OwnerResponse;
 
 public interface OwnerService {
-    List<Owner> getAllOwners();
-    Owner getOwnerById(Long id);
-    Owner createOwner(Owner owner);
-    Owner updateOwner(Long id, Owner owner);
+    List<OwnerResponse> getAllOwners();
+    OwnerResponse getOwnerById(Long id);
+    OwnerResponse createOwner(OwnerRequest request);
+    OwnerResponse updateOwner(Long id, OwnerRequest request);
     void deleteOwner(Long id);
 }

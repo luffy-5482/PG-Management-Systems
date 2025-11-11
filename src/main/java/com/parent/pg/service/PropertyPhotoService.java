@@ -1,12 +1,13 @@
 package com.parent.pg.service;
 
 import java.util.List;
-import com.parent.pg.model.PropertyPhoto;
+import com.parent.pg.dto.PropertyPhotoRequest;
+import com.parent.pg.dto.PropertyPhotoResponse;
 
 public interface PropertyPhotoService {
-    List<PropertyPhoto> getAllPhotos();
-    PropertyPhoto getPhotoById(Long id);
-    PropertyPhoto createPhoto(PropertyPhoto propertyPhoto);
-    PropertyPhoto updatePhoto(Long id, PropertyPhoto propertyPhoto);
+    List<PropertyPhotoResponse> getAllPhotos();
+    PropertyPhotoResponse getPhotoById(Long id);
+    PropertyPhotoResponse createPhoto(PropertyPhotoRequest request);
+    PropertyPhotoResponse updatePhoto(Long id, PropertyPhotoRequest request);
     void deletePhoto(Long id);
 }

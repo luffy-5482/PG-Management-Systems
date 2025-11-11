@@ -2,6 +2,7 @@ package com.parent.owner.model;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.parent.pg.model.PgEntity;
 
@@ -16,7 +17,6 @@ import jakarta.persistence.Table;
 @Entity
 @Table(name = "owners")
 public class Owner {
-
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
@@ -25,6 +25,7 @@ public class Owner {
 	private String email;
 	private String phoneNumber;
 	private String gender;
+	@JsonIgnore
 	private String password; // For future login system
 
 	@OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true)

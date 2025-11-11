@@ -1,18 +1,13 @@
 package com.parent.pg.service;
 
 import java.util.List;	
-
-import com.parent.pg.model.PgEntity;
+import com.parent.pg.dto.PgRequest;
+import com.parent.pg.dto.PgResponse;
 
 public interface PgService {
-	List<PgEntity> getAllPgs();
-
-	PgEntity getPgById(Long id);
-
-	PgEntity createPg(PgEntity pg);
-
-	PgEntity updatePg(Long id, PgEntity pg);
-
-	void deletePg(Long id);
+    List<PgResponse> getAllPgs();
+    PgResponse getPgById(Long id);
+    PgResponse createPg(PgRequest pgRequest);
+    PgResponse updatePg(Long id, PgRequest pgRequest);
+    void deletePg(Long id);
 }
-

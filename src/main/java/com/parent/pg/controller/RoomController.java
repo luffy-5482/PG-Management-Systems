@@ -1,51 +1,64 @@
 package com.parent.pg.controller;
 
-import java.util.List;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
+import java.util.List;	
 
-import com.parent.pg.model.RoomEntity;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.parent.pg.dto.RoomRequest;
+import com.parent.pg.dto.RoomResponse;
 import com.parent.pg.service.RoomService;
 
 @RestController
-@RequestMapping("/api/pgs/{pgId}")
+@RequestMapping("/api/rooms")
 @CrossOrigin(origins = "*")
 public class RoomController {
 
     @Autowired
     private RoomService roomService;
 
-    // get all rooms for a PG
-    @GetMapping("/rooms")
-    public List<RoomEntity> getRoomsByPg(@PathVariable Long pgId) {
+    // Get all rooms of a PG
+    @GetMapping("/pgs/{pgId}")
+    public List<RoomResponse> getRoomsByPgId(@PathVariable Long pgId) {
         return roomService.getRoomsByPgId(pgId);
     }
 
-    // get rooms by floor
-    @GetMapping("/floors/{floorId}/rooms")
-    public List<RoomEntity> getRoomsByFloor(@PathVariable Long pgId, @PathVariable Long floorId) {
+    // Get all rooms on a specific floor
+    @GetMapping("/floors/{floorId}")
+    public List<RoomResponse> getRoomsByFloorId(@PathVariable Long floorId) {
         return roomService.getRoomsByFloorId(floorId);
     }
 
-    // create room under pg and floor
-    @PostMapping("/floors/{floorId}/rooms")
-    public RoomEntity createRoom(@PathVariable Long pgId, @PathVariable Long floorId, @RequestBody RoomEntity room) {
-        return roomService.createRoom(pgId, floorId, room);
+    // Get a single room
+    @GetMapping("/{id}")
+    public RoomResponse getRoomById(@PathVariable Long id) {
+        return roomService.getRoomById(id);
     }
 
-    @GetMapping("/rooms/{roomId}")
-    public RoomEntity getRoomById(@PathVariable Long pgId, @PathVariable Long roomId) {
-        return roomService.getRoomById(roomId);
+    // Create a room
+    @PostMapping
+    public RoomResponse createRoom(@RequestBody RoomRequest request) {
+        return roomService.createRoom(request);
     }
 
-    @PutMapping("/rooms/{roomId}")
-    public RoomEntity updateRoom(@PathVariable Long pgId, @PathVariable Long roomId, @RequestBody RoomEntity room) {
-        return roomService.updateRoom(roomId, room);
+    // Update room
+    @PutMapping("/{id}")
+    public RoomResponse updateRoom(@PathVariable Long id, @RequestBody RoomRequest request) {
+        return roomService.updateRoom(id, request);
     }
 
-    @DeleteMapping("/rooms/{roomId}")
-    public String deleteRoom(@PathVariable Long pgId, @PathVariable Long roomId) {
-        roomService.deleteRoom(roomId);
-        return "Room deleted successfully";
+    // Delete room
+    @DeleteMapping("/{id}")
+    public String deleteRoom(@PathVariable Long id) {
+        roomService.deleteRoom(id);
+        return "Room deleted successfully!";
     }
 }

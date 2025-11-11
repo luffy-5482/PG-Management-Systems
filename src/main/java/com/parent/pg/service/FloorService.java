@@ -1,11 +1,14 @@
 package com.parent.pg.service;
 
 import java.util.List;
-import com.parent.pg.model.Floor;
+
+import com.parent.pg.dto.FloorRequest;
+import com.parent.pg.dto.FloorResponse;
 
 public interface FloorService {
-    List<Floor> getFloorsByPgId(Long pgId);
-    Floor createFloor(Long pgId, Floor floor);
-    Floor updateFloor(Long floorId, Floor floor);
-    void deleteFloor(Long floorId);
+    List<FloorResponse> getFloorsByPgId(Long pgId);
+    FloorResponse getFloorById(Long id);
+    FloorResponse createFloor(FloorRequest floorRequest);
+    FloorResponse updateFloor(Long id, FloorRequest floorRequest);
+    void deleteFloor(Long id);
 }
