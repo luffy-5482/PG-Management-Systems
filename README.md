@@ -134,13 +134,16 @@ if (pg.getContactPerson() != null) {
     response.setContactPerson(c);
 }
 ```
-### 🧪 **API Testing Summary (Postman)**
-Action	Method	Endpoint	Description
-Create PG with contact	POST	/api/pgs	Adds new PG + contact person
-Get all PGs	GET	/api/pgs	Fetches PGs with contact details
-Get PG by ID	GET	/api/pgs/{id}	Fetches PG and its contact
-Update PG	PUT	/api/pgs/{id}	Updates PG and contact person
-Delete PG	DELETE	/api/pgs/{id}	Deletes PG and related contact
+## 🧪 API Testing Summary (Postman)
+
+| Action | Method | Endpoint | Description |
+|--------|---------|-----------|--------------|
+| **Create PG with contact** | `POST` | `/api/pgs` | Adds new PG + contact person |
+| **Get all PGs** | `GET` | `/api/pgs` | Fetches PGs with contact details |
+| **Get PG by ID** | `GET` | `/api/pgs/{id}` | Fetches PG and its contact |
+| **Update PG** | `PUT` | `/api/pgs/{id}` | Updates PG and contact person |
+| **Delete PG** | `DELETE` | `/api/pgs/{id}` | Deletes PG and related contact |
+
 
 **🧠 Example Request*8
 
