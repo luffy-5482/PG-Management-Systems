@@ -91,25 +91,27 @@ private ContactPersonRequest contactPerson;
 
 
 Example JSON:
-
+```java
 "contactPerson": {
   "name": "Anjali Mehta",
   "number": "9876543210",
   "role": "Manager"
 }
+```
 
 ### 4️⃣ **PgResponse.java**
 
 Added nested DTO for outgoing contact details:
-
+```java
 private ContactPersonResponse contactPerson;
+```
 
 ### 5️⃣ **PgServiceImpl.java**
 
 Updated createPg() and updatePg() methods to handle Contact Person save logic.
 
 Inside createPg(PgRequest request) after saving PG:
-
+```java
 if (request.getContactPerson() != null) {
     ContactPerson contact = new ContactPerson();
     contact.setName(request.getContactPerson().getName());
@@ -119,10 +121,10 @@ if (request.getContactPerson() != null) {
     contactPersonRepository.save(contact);
     saved.setContactPerson(contact);
 }
-
+```
 
 Inside toPgResponse(PgEntity pg):
-
+```java
 if (pg.getContactPerson() != null) {
     ContactPersonResponse c = new ContactPersonResponse();
     c.setId(pg.getContactPerson().getId());
@@ -131,3 +133,4 @@ if (pg.getContactPerson() != null) {
     c.setRole(pg.getContactPerson().getRole());
     response.setContactPerson(c);
 }
+```
