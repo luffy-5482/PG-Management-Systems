@@ -55,6 +55,7 @@ private ContactPerson contactPerson;
 
 public ContactPerson getContactPerson() { return contactPerson; }
 public void setContactPerson(ContactPerson contactPerson) { this.contactPerson = contactPerson; }
+```
 
 ## 🧩 Contact Person Feature Implementation
 
@@ -79,7 +80,8 @@ public class ContactPerson {
     private PgEntity pg;
 
     // getters and setters
-}
+} 
+```
 
 ### 3️⃣ **PgRequest.java**
 
