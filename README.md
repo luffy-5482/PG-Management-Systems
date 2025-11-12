@@ -134,3 +134,42 @@ if (pg.getContactPerson() != null) {
     response.setContactPerson(c);
 }
 ```
+### 🧪 **API Testing Summary (Postman)**
+Action	Method	Endpoint	Description
+Create PG with contact	POST	/api/pgs	Adds new PG + contact person
+Get all PGs	GET	/api/pgs	Fetches PGs with contact details
+Get PG by ID	GET	/api/pgs/{id}	Fetches PG and its contact
+Update PG	PUT	/api/pgs/{id}	Updates PG and contact person
+Delete PG	DELETE	/api/pgs/{id}	Deletes PG and related contact
+
+**🧠 Example Request*8
+
+POST /api/pgs
+
+```java
+{
+  "ownerId": 1,
+  "name": "Skyline PG",
+  "type": "Girls",
+  "price": 9500,
+  "availability": true,
+  "street": "MG Road",
+  "city": "Bangalore",
+  "state": "Karnataka",
+  "pincode": "560001",
+  "contactPerson": {
+    "name": "Anjali Mehta",
+    "number": "9876543210",
+    "role": "Manager"
+  }
+}
+```
+
+**✅ Results**
+
+Contact person data is stored in a new table and linked with PG.
+
+When PG data is retrieved, contact info is included automatically.
+
+No impact or breaking changes to existing APIs.
+
