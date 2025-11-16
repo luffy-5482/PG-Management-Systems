@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.parent.config.SecurityUtils;
 import com.parent.pg.dto.AmenityRequest;
 import com.parent.pg.dto.AmenityResponse;
 import com.parent.pg.model.Amenity;
@@ -22,6 +23,19 @@ public class AmenityServiceImpl implements AmenityService {
     @Autowired
     private PgRepository pgRepository;
 
+    // -----------------------------------
+    // 🔐 Get logged-in owner ID
+    // -----------------------------------
+    private Long getOwnerId() {
+        Long id = SecurityUtils.getLoggedInOwnerId();
+        if (id == null)
+            throw new RuntimeException("Unauthorized: Owner not found in token");
+        return id;
+    }
+
+    // -----------------------------------
+    // 🔁 Convert entity → response
+    // -----------------------------------
     private AmenityResponse toResponse(Amenity amenity) {
         return new AmenityResponse(
             amenity.getId(),
@@ -30,22 +44,43 @@ public class AmenityServiceImpl implements AmenityService {
         );
     }
 
+    // -----------------------------------
+    // 🔥 Get ALL amenities → only owner's PG amenities
+    // -----------------------------------
     @Override
     public List<AmenityResponse> getAllAmenities() {
-        return amenityRepo.findAll().stream().map(this::toResponse).collect(Collectors.toList());
+        Long ownerId = getOwnerId();
+
+        return amenityRepo.findByPgOwnerId(ownerId)
+                .stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
     }
 
+    // -----------------------------------
+    // 🔥 Get amenity by ID → only if owned
+    // -----------------------------------
     @Override
     public AmenityResponse getAmenityById(Long id) {
-        Amenity amenity = amenityRepo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Amenity not found with id: " + id));
+        Long ownerId = getOwnerId();
+
+        Amenity amenity = amenityRepo.findByIdAndPgOwnerId(id, ownerId)
+                .orElseThrow(() ->
+                        new RuntimeException("Amenity not found OR does not belong to you"));
+
         return toResponse(amenity);
     }
 
+    // -----------------------------------
+    // 🔥 Create amenity → PG must belong to owner
+    // -----------------------------------
     @Override
     public AmenityResponse createAmenity(AmenityRequest request) {
-        PgEntity pg = pgRepository.findById(request.getPgId())
-                .orElseThrow(() -> new RuntimeException("PG not found with id: " + request.getPgId()));
+        Long ownerId = getOwnerId();
+
+        PgEntity pg = pgRepository.findByIdAndOwnerId(request.getPgId(), ownerId)
+                .orElseThrow(() ->
+                        new RuntimeException("Unauthorized: PG does not belong to you"));
 
         Amenity amenity = new Amenity();
         amenity.setName(request.getName());
@@ -55,24 +90,42 @@ public class AmenityServiceImpl implements AmenityService {
         return toResponse(saved);
     }
 
+    // -----------------------------------
+    // 🔥 Update → only if owned + PG owned
+    // -----------------------------------
     @Override
     public AmenityResponse updateAmenity(Long id, AmenityRequest request) {
-        Amenity existing = amenityRepo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Amenity not found with id: " + id));
+        Long ownerId = getOwnerId();
+
+        Amenity existing = amenityRepo.findByIdAndPgOwnerId(id, ownerId)
+                .orElseThrow(() ->
+                        new RuntimeException("Unauthorized: Amenity not found or not owned by you")
+                );
 
         if (request.getPgId() != null) {
-            PgEntity pg = pgRepository.findById(request.getPgId())
-                    .orElseThrow(() -> new RuntimeException("PG not found with id: " + request.getPgId()));
+            PgEntity pg = pgRepository.findByIdAndOwnerId(request.getPgId(), ownerId)
+                    .orElseThrow(() ->
+                            new RuntimeException("Unauthorized: PG does not belong to you"));
             existing.setPg(pg);
         }
 
         existing.setName(request.getName());
+
         Amenity saved = amenityRepo.save(existing);
         return toResponse(saved);
     }
 
+    // -----------------------------------
+    // 🔥 Delete → only if owned
+    // -----------------------------------
     @Override
     public void deleteAmenity(Long id) {
-        amenityRepo.deleteById(id);
+        Long ownerId = getOwnerId();
+
+        Amenity amenity = amenityRepo.findByIdAndPgOwnerId(id, ownerId)
+                .orElseThrow(() ->
+                        new RuntimeException("Unauthorized: Amenity not found or not owned by you"));
+
+        amenityRepo.delete(amenity);
     }
 }

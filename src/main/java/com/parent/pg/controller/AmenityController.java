@@ -17,26 +17,41 @@ public class AmenityController {
     @Autowired
     private AmenityService amenityService;
 
+    // -----------------------------------------------------
+    // 🔥 Get ALL amenities of the logged-in owner
+    // -----------------------------------------------------
     @GetMapping
     public List<AmenityResponse> getAllAmenities() {
-        return amenityService.getAllAmenities();
+        return amenityService.getAllAmenities(); // already secure
     }
 
+    // -----------------------------------------------------
+    // 🔥 Get a specific amenity (only if owned)
+    // -----------------------------------------------------
     @GetMapping("/{id}")
     public AmenityResponse getAmenityById(@PathVariable Long id) {
-        return amenityService.getAmenityById(id);
+        return amenityService.getAmenityById(id); // already secure
     }
 
+    // -----------------------------------------------------
+    // 🔥 Create amenity — PG must belong to owner
+    // -----------------------------------------------------
     @PostMapping
     public AmenityResponse createAmenity(@RequestBody AmenityRequest request) {
         return amenityService.createAmenity(request);
     }
 
+    // -----------------------------------------------------
+    // 🔥 Update amenity — only if owned by logged-in owner
+    // -----------------------------------------------------
     @PutMapping("/{id}")
     public AmenityResponse updateAmenity(@PathVariable Long id, @RequestBody AmenityRequest request) {
         return amenityService.updateAmenity(id, request);
     }
 
+    // -----------------------------------------------------
+    // 🔥 Delete amenity — only if owned
+    // -----------------------------------------------------
     @DeleteMapping("/{id}")
     public String deleteAmenity(@PathVariable Long id) {
         amenityService.deleteAmenity(id);

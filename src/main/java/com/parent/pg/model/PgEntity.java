@@ -1,6 +1,6 @@
 package com.parent.pg.model;
 
-import java.util.List;
+import java.util.List;	
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
@@ -50,17 +50,29 @@ public class PgEntity {
 	@JsonManagedReference(value = "pg-floor")
 	private List<Floor> floors;
 	
-	public List<RoomEntity> getRooms() {
-		return rooms;
-	}
-
-	public void setRooms(List<RoomEntity> rooms) {
-		this.rooms = rooms;
-	}
 	@OneToMany(mappedBy = "pg", cascade = CascadeType.ALL, orphanRemoval = true)
 	@JsonManagedReference(value = "pg-room")
 	private List<RoomEntity> rooms; // Add this
+	
+	@OneToMany(mappedBy = "pg", cascade = CascadeType.ALL, orphanRemoval = true)
+	private List<ContactPerson> contacts;
+	
+	public List<ContactPerson> getContacts() {
+		return contacts;
+	}
+	
+	public void setContacts(List<ContactPerson> contacts) {
+		this.contacts = contacts;
+	}
 
+	public List<RoomEntity> getRooms() {
+		return rooms;
+	}
+	
+	public void setRooms(List<RoomEntity> rooms) {
+		this.rooms = rooms;
+	}
+	
 	public List<Floor> getFloors() {
 		return floors;
 	}

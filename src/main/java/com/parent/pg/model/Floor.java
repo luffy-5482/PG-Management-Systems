@@ -1,6 +1,6 @@
 package com.parent.pg.model;
 
-import java.util.List;
+import java.util.List;	
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
@@ -30,7 +30,7 @@ public class Floor {
 
 	public Floor() {
 	}
-
+ 
 	// Getters & Setters
 	public Long getId() {
 		return id;

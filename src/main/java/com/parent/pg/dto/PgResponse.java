@@ -21,12 +21,15 @@ public class PgResponse {
 	private List<FloorResponse> floors;
 	private List<AmenityResponse> amenities;
 	private List<PropertyPhotoResponse> photos;
+	private List<ContactPersonResponse> contacts;
 
-	public PgResponse() {}
+
+	public PgResponse() {
+	}
 
 	public PgResponse(Long id, String name, String type, Double price, String rules, Boolean availability,
-			Address address, Long ownerId, String ownerName, String ownerEmail,
-			List<FloorResponse> floors, List<AmenityResponse> amenities, List<PropertyPhotoResponse> photos) {
+			Address address, Long ownerId, String ownerName, String ownerEmail, List<FloorResponse> floors,
+			List<AmenityResponse> amenities, List<PropertyPhotoResponse> photos) {
 		this.id = id;
 		this.name = name;
 		this.type = type;
@@ -40,6 +43,13 @@ public class PgResponse {
 		this.floors = floors;
 		this.amenities = amenities;
 		this.photos = photos;
+	}
+
+	public PgResponse(Long id2, String name2, String type2, Double price2, String rules2, Boolean availability2,
+			Address address2, Long long1, Object object, Object object2, List<FloorResponse> floorResponses,
+			List<AmenityResponse> amenityResponses, List<PropertyPhotoResponse> photoResponses,
+			List<ContactPersonResponse> contactResponses) {
+		// TODO Auto-generated constructor stub
 	}
 
 	public Long getId() {

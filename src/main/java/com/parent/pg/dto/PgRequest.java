@@ -1,5 +1,7 @@
 package com.parent.pg.dto;
 
+import java.util.List;
+
 public class PgRequest {
 	private Long ownerId;
 	private String name;
@@ -12,6 +14,8 @@ public class PgRequest {
 	private String city;
 	private String state;
 	private String pincode;
+	private List<ContactPersonRequest> contacts;
+	
 
 	public PgRequest() {
 	}
@@ -95,5 +99,13 @@ public class PgRequest {
 
 	public void setPincode(String pincode) {
 		this.pincode = pincode;
+	}
+
+	public List<ContactPersonRequest> getContacts() {
+		return contacts;
+	}
+
+	public void setContacts(List<ContactPersonRequest> contacts) {
+		this.contacts = contacts;
 	}
 }

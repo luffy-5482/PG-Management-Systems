@@ -1,6 +1,6 @@
 package com.parent.pg.service;
 
-import java.util.List;	
+import java.util.List;		
 import com.parent.pg.dto.PgRequest;
 import com.parent.pg.dto.PgResponse;
 
@@ -11,3 +11,4 @@ public interface PgService {
     PgResponse updatePg(Long id, PgRequest pgRequest);
     void deletePg(Long id);
 }
+ 
