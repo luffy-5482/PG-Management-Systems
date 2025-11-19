@@ -7,7 +7,6 @@ public class ContactPersonRequest {
     private String phoneNumber;
     private String role;
     private Boolean isPrimary;
-
     private Long pgId;
 
     public ContactPersonRequest() {}
@@ -58,8 +57,5 @@ public class ContactPersonRequest {
 
 	public void setPgId(Long pgId) {
 		this.pgId = pgId;
-	}
-
-    // getters & setters
-    
+	}    
 }

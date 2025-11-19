@@ -30,25 +30,31 @@ public class RoomServiceImpl implements RoomService {
     private FloorRepository floorRepository;
 
     // ---------------------------------------------------------
-    // 🚀 Helper: Get logged-in owner ID (safe)
+    // 🔐 Get logged-in OWNER ID
     // ---------------------------------------------------------
     private Long getOwnerId() {
-        Long id = SecurityUtils.getLoggedInOwnerId();
-        if (id == null)
-            throw new RuntimeException("Unauthorized: Owner not found in token");
-        return id;
+        return SecurityUtils.getLoggedInOwnerId();
     }
 
     // ---------------------------------------------------------
-    // 🚀 Convert entity → response (UPDATED FOR ROOM AMENITIES)
+    // 🔐 Get logged-in STAFF info
+    // ---------------------------------------------------------
+    private Long getStaffId() {
+        return SecurityUtils.getLoggedInStaffId();
+    }
+
+    private Long getStaffPgId() {
+        return SecurityUtils.getStaffPgId();
+    }
+
+    // ---------------------------------------------------------
+    // 🚀 Convert entity → response
     // ---------------------------------------------------------
     private RoomResponse toResponse(RoomEntity room) {
 
-        // Convert List<RoomAmenity> → List<String>
         List<String> amenityNames = (room.getAmenities() == null)
                 ? List.of()
-                : room.getAmenities()
-                      .stream()
+                : room.getAmenities().stream()
                       .map(RoomAmenity::getAmenityName)
                       .collect(Collectors.toList());
 
@@ -59,7 +65,7 @@ public class RoomServiceImpl implements RoomService {
         response.setPricePerBed(room.getPricePerBed());
         response.setAvailable(room.getAvailable());
         response.setNotes(room.getNotes());
-        response.setAmenities(amenityNames);   // 🔥 FIXED
+        response.setAmenities(amenityNames);
         response.setFurniture(room.getFurniture());
 
         if (room.getFloor() != null)
@@ -72,149 +78,253 @@ public class RoomServiceImpl implements RoomService {
     }
 
     // ---------------------------------------------------------
-    // 🚀 Apply request DTO → entity (UPDATED FOR ROOM AMENITIES)
+    // 🧠 Owner-only — Apply all fields
     // ---------------------------------------------------------
-    private void applyRequest(RoomRequest request, RoomEntity room, PgEntity pg, Floor floor) {
+    private void applyOwnerChanges(RoomRequest req, RoomEntity room, PgEntity pg, Floor floor) {
 
         room.setPg(pg);
         room.setFloor(floor);
-        room.setRoomNumber(request.getRoomNumber());
-        room.setCapacity(request.getCapacity());
-        room.setPricePerBed(request.getPricePerBed());
-        room.setAvailable(request.getAvailable());
-        room.setNotes(request.getNotes());
 
-        // -----------------------------
-        // 🔥 Convert List<String> → List<RoomAmenity>
-        // -----------------------------
-        if (request.getAmenities() != null) {
-            List<RoomAmenity> amenityEntities = request.getAmenities()
-                    .stream()
+        room.setRoomNumber(req.getRoomNumber());
+        room.setCapacity(req.getCapacity());
+        room.setPricePerBed(req.getPricePerBed());
+        room.setAvailable(req.getAvailable());
+        room.setNotes(req.getNotes());
+
+        // Amenities
+        if (req.getAmenities() != null) {
+            List<RoomAmenity> list = req.getAmenities().stream()
                     .map(a -> {
-                        RoomAmenity ra = new RoomAmenity();
-                        ra.setAmenityName(a);
-                        ra.setRoom(room);
-                        return ra;
+                        RoomAmenity am = new RoomAmenity();
+                        am.setAmenityName(a);
+                        am.setRoom(room);
+                        return am;
                     })
                     .collect(Collectors.toList());
 
-            room.setAmenities(amenityEntities);
+            room.setAmenities(list);
         }
 
-        room.setFurniture(request.getFurniture());
+        room.setFurniture(req.getFurniture());
     }
 
     // ---------------------------------------------------------
-    // 🔥 Get all rooms by PG — ONLY IF PG belongs to owner
+    // 🧠 STAFF update rules (Option 1)
+    // ---------------------------------------------------------
+    private void applyStaffChanges(RoomRequest req, RoomEntity room) {
+
+        // Allowed
+        room.setAvailable(req.getAvailable());
+        room.setNotes(req.getNotes());
+        room.setFurniture(req.getFurniture());
+
+        if (req.getAmenities() != null) {
+            List<RoomAmenity> list = req.getAmenities().stream()
+                    .map(a -> {
+                        RoomAmenity am = new RoomAmenity();
+                        am.setAmenityName(a);
+                        am.setRoom(room);
+                        return am;
+                    })
+                    .collect(Collectors.toList());
+
+            room.setAmenities(list);
+        }
+
+        // Not allowed → ignore:
+        // roomNumber, capacity, pricePerBed, floor, pg
+    }
+
+    // ---------------------------------------------------------
+    // GET ROOMS BY PG (Owner + Staff)
     // ---------------------------------------------------------
     @Override
     public List<RoomResponse> getRoomsByPgId(Long pgId) {
+
         Long ownerId = getOwnerId();
+        Long staffId = getStaffId();
 
-        pgRepository.findByIdAndOwnerId(pgId, ownerId)
-                .orElseThrow(() ->
-                        new RuntimeException("Unauthorized: PG does not belong to you"));
+        if (ownerId != null) {
+            // OWNER
+            pgRepository.findByIdAndOwnerId(pgId, ownerId)
+                    .orElseThrow(() -> new RuntimeException("Unauthorized: PG does not belong to you"));
 
-        return roomRepository.findByPgIdAndPgOwnerId(pgId, ownerId)
-                .stream()
-                .map(this::toResponse)
-                .collect(Collectors.toList());
+            return roomRepository.findByPgIdAndPgOwnerId(pgId, ownerId)
+                    .stream().map(this::toResponse)
+                    .collect(Collectors.toList());
+        }
+
+        if (staffId != null) {
+            // STAFF
+            if (!pgId.equals(getStaffPgId()))
+                throw new RuntimeException("Unauthorized: Staff belongs to a different PG");
+
+            return roomRepository.findByPg_Id(pgId).stream()
+                    .map(this::toResponse)
+                    .collect(Collectors.toList());
+        }
+
+        throw new RuntimeException("Unauthorized");
     }
 
     // ---------------------------------------------------------
-    // 🔥 Get rooms by Floor — only if the floor belongs to owner
+    // GET ROOMS BY FLOOR
     // ---------------------------------------------------------
     @Override
     public List<RoomResponse> getRoomsByFloorId(Long floorId) {
+
         Long ownerId = getOwnerId();
+        Long staffId = getStaffId();
 
-        floorRepository.findByIdAndPgOwnerId(floorId, ownerId)
-                .orElseThrow(() ->
-                        new RuntimeException("Unauthorized: Floor does not belong to you"));
+        if (ownerId != null) {
+            floorRepository.findByIdAndPgOwnerId(floorId, ownerId)
+                    .orElseThrow(() -> new RuntimeException("Unauthorized: Floor not owned"));
 
-        return roomRepository.findByFloorIdAndPgOwnerId(floorId, ownerId)
-                .stream()
-                .map(this::toResponse)
-                .collect(Collectors.toList());
+            return roomRepository.findByFloorIdAndPgOwnerId(floorId, ownerId)
+                    .stream().map(this::toResponse)
+                    .collect(Collectors.toList());
+        }
+
+        if (staffId != null) {
+            Floor floor = floorRepository.findById(floorId)
+                    .orElseThrow(() -> new RuntimeException("Invalid floor"));
+
+            if (!floor.getPg().getId().equals(getStaffPgId()))
+                throw new RuntimeException("Unauthorized: Not your PG");
+
+            return floor.getRooms().stream()
+                    .map(this::toResponse)
+                    .collect(Collectors.toList());
+        }
+
+        throw new RuntimeException("Unauthorized");
     }
 
     // ---------------------------------------------------------
-    // 🔥 Get single room — only if room belongs to owner
+    // GET ROOM BY ID
     // ---------------------------------------------------------
     @Override
     public RoomResponse getRoomById(Long id) {
+
         Long ownerId = getOwnerId();
+        Long staffId = getStaffId();
 
-        RoomEntity room = roomRepository.findByIdAndPgOwnerId(id, ownerId)
-                .orElseThrow(() ->
-                        new RuntimeException("Room not found OR not owned by you"));
+        if (ownerId != null) {
+            RoomEntity room = roomRepository.findByIdAndPgOwnerId(id, ownerId)
+                    .orElseThrow(() -> new RuntimeException("Room not found or unauthorized"));
 
-        return toResponse(room);
+            return toResponse(room);
+        }
+
+        if (staffId != null) {
+            RoomEntity room = roomRepository.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Room not found"));
+
+            if (!room.getPg().getId().equals(getStaffPgId()))
+                throw new RuntimeException("Unauthorized");
+
+            return toResponse(room);
+        }
+
+        throw new RuntimeException("Unauthorized");
     }
 
     // ---------------------------------------------------------
-    // 🔥 Create room — PG + Floor must belong to owner
+    // CREATE ROOM (OWNER ONLY)
     // ---------------------------------------------------------
     @Override
-    public RoomResponse createRoom(RoomRequest request) {
+    public RoomResponse createRoom(RoomRequest req) {
+
         Long ownerId = getOwnerId();
+        Long staffId = getStaffId();
 
-        PgEntity pg = pgRepository.findByIdAndOwnerId(request.getPgId(), ownerId)
-                .orElseThrow(() ->
-                        new RuntimeException("Unauthorized: PG does not belong to you"));
+        if (staffId != null)
+            throw new RuntimeException("Staff cannot create rooms");
 
-        Floor floor = floorRepository.findByIdAndPgOwnerId(request.getFloorId(), ownerId)
-                .orElseThrow(() ->
-                        new RuntimeException("Unauthorized: Floor does not belong to you"));
+        if (ownerId == null)
+            throw new RuntimeException("Unauthorized");
+
+        PgEntity pg = pgRepository.findByIdAndOwnerId(req.getPgId(), ownerId)
+                .orElseThrow(() -> new RuntimeException("PG not owned by you"));
+
+        Floor floor = floorRepository.findByIdAndPgOwnerId(req.getFloorId(), ownerId)
+                .orElseThrow(() -> new RuntimeException("Floor not owned by you"));
 
         RoomEntity room = new RoomEntity();
-        applyRequest(request, room, pg, floor);
+        applyOwnerChanges(req, room, pg, floor);
 
         RoomEntity saved = roomRepository.save(room);
         return toResponse(saved);
     }
 
     // ---------------------------------------------------------
-    // 🔥 Update room — only if room belongs to owner
+    // UPDATE ROOM (OWNER = full update, STAFF = limited update)
     // ---------------------------------------------------------
     @Override
-    public RoomResponse updateRoom(Long id, RoomRequest request) {
+    public RoomResponse updateRoom(Long id, RoomRequest req) {
+
         Long ownerId = getOwnerId();
+        Long staffId = getStaffId();
 
-        RoomEntity existing = roomRepository.findByIdAndPgOwnerId(id, ownerId)
-                .orElseThrow(() ->
-                        new RuntimeException("Unauthorized: Room not found or not owned by you"));
+        RoomEntity existing = roomRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Room not found"));
 
-        PgEntity pg = existing.getPg();
-        if (request.getPgId() != null) {
-            pg = pgRepository.findByIdAndOwnerId(request.getPgId(), ownerId)
-                    .orElseThrow(() ->
-                            new RuntimeException("Unauthorized: PG does not belong to you"));
+        // STAFF update
+        if (staffId != null) {
+
+            if (!existing.getPg().getId().equals(getStaffPgId()))
+                throw new RuntimeException("Unauthorized: Staff PG mismatch");
+
+            applyStaffChanges(req, existing);
+
+            RoomEntity updated = roomRepository.save(existing);
+            return toResponse(updated);
         }
 
-        Floor floor = existing.getFloor();
-        if (request.getFloorId() != null) {
-            floor = floorRepository.findByIdAndPgOwnerId(request.getFloorId(), ownerId)
-                    .orElseThrow(() ->
-                            new RuntimeException("Unauthorized: Floor does not belong to you"));
+        // OWNER update
+        if (ownerId != null) {
+
+            existing = roomRepository.findByIdAndPgOwnerId(id, ownerId)
+                    .orElseThrow(() -> new RuntimeException("Unauthorized"));
+
+            PgEntity pg = existing.getPg();
+            if (req.getPgId() != null) {
+                pg = pgRepository.findByIdAndOwnerId(req.getPgId(), ownerId)
+                        .orElseThrow(() -> new RuntimeException("PG not owned by you"));
+            }
+
+            Floor floor = existing.getFloor();
+            if (req.getFloorId() != null) {
+                floor = floorRepository.findByIdAndPgOwnerId(req.getFloorId(), ownerId)
+                        .orElseThrow(() -> new RuntimeException("Floor not owned by you"));
+            }
+
+            applyOwnerChanges(req, existing, pg, floor);
+
+            RoomEntity updated = roomRepository.save(existing);
+            return toResponse(updated);
         }
 
-        applyRequest(request, existing, pg, floor);
-
-        RoomEntity updated = roomRepository.save(existing);
-        return toResponse(updated);
+        throw new RuntimeException("Unauthorized");
     }
 
     // ---------------------------------------------------------
-    // 🔥 Delete room — only if owned
+    // DELETE ROOM (OWNER ONLY)
     // ---------------------------------------------------------
     @Override
     public void deleteRoom(Long id) {
+
         Long ownerId = getOwnerId();
+        Long staffId = getStaffId();
+
+        if (staffId != null)
+            throw new RuntimeException("Staff cannot delete rooms");
+
+        if (ownerId == null)
+            throw new RuntimeException("Unauthorized");
 
         RoomEntity room = roomRepository.findByIdAndPgOwnerId(id, ownerId)
-                .orElseThrow(() ->
-                        new RuntimeException("Unauthorized: Room not found or not owned by you"));
+                .orElseThrow(() -> new RuntimeException("Unauthorized"));
 
         roomRepository.delete(room);
     }

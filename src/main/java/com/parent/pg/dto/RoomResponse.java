@@ -31,7 +31,6 @@ public class RoomResponse {
 		this.pgId = pgId;
 	}
 
-	// Getters & Setters
 	public Long getId() {
 		return id;
 	}

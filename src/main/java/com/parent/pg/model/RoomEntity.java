@@ -18,6 +18,7 @@ public class RoomEntity {
     private Boolean available = true;
     private String notes;
 
+
     @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RoomAmenity> amenities;
 
@@ -117,7 +118,4 @@ public class RoomEntity {
 	public void setFloor(Floor floor) {
 		this.floor = floor;
 	}
-
-    // getters & setters...
-    
 }

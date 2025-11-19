@@ -17,17 +17,12 @@ public class PgController {
     @Autowired
     private PgService pgService;
 
-    // ---------------------------------------------------------
-    // 🔥 Get ALL PGs of the logged-in owner
-    // ---------------------------------------------------------
+   
     @GetMapping
     public List<PgResponse> getAllPgs() {
         return pgService.getAllPgs();  // already owner-secured
     }
-
-    // ---------------------------------------------------------
-    // 🔥 Get a single PG by ID — only if owned by this owner
-    // ---------------------------------------------------------
+    
     @GetMapping("/{id}")
     public PgResponse getPgById(@PathVariable Long id) {
         return pgService.getPgById(id);  // service enforces ownership
@@ -49,9 +44,6 @@ public class PgController {
         return pgService.updatePg(id, pgRequest);
     }
 
-    // ---------------------------------------------------------
-    // 🔥 Delete PG — only if this PG belongs to logged-in owner
-    // ---------------------------------------------------------
     @DeleteMapping("/{id}")
     public String deletePg(@PathVariable Long id) {
         pgService.deletePg(id);

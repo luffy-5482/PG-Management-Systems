@@ -12,6 +12,7 @@ import com.parent.owner.repository.OwnerRepository;
 import com.parent.pg.dto.*;
 import com.parent.pg.model.*;
 import com.parent.pg.repository.PgRepository;
+import com.parent.staff.dto.StaffResponse;
 
 @Service
 public class PgServiceImpl implements PgService {
@@ -40,7 +41,6 @@ public class PgServiceImpl implements PgService {
 
     private RoomResponse toRoomResponse(RoomEntity room) {
 
-        // NEW: Convert List<RoomAmenity> → List<String>
         List<String> amenityNames = (room.getAmenities() == null)
                 ? List.of()
                 : room.getAmenities()
@@ -55,13 +55,12 @@ public class PgServiceImpl implements PgService {
                 room.getPricePerBed(),
                 room.getAvailable(),
                 room.getNotes(),
-                amenityNames,   // 🔥 replaced old room.getAmenities()
+                amenityNames,
                 room.getFurniture(),
                 (room.getFloor() != null ? room.getFloor().getId() : null),
                 (room.getPg() != null ? room.getPg().getId() : null)
         );
     }
-
 
     private FloorResponse toFloorResponse(Floor floor) {
         if (floor == null) return null;
@@ -96,48 +95,101 @@ public class PgServiceImpl implements PgService {
         );
     }
 
+    // ------------------ PG → Response (OWNER FULL / STAFF LIMITED) ------------------
+
     private PgResponse toPgResponse(PgEntity pg) {
+
+        Long ownerId   = SecurityUtils.getLoggedInOwnerId();
+        Long staffId   = SecurityUtils.getLoggedInStaffId();
+
+        boolean isOwner = ownerId != null;
+        boolean isStaff = staffId != null;
 
         List<FloorResponse> floorResponses = (pg.getFloors() == null)
                 ? List.of()
                 : pg.getFloors().stream()
-                .map(this::toFloorResponse)
-                .collect(Collectors.toList());
+                        .map(this::toFloorResponse)
+                        .collect(Collectors.toList());
 
         List<AmenityResponse> amenityResponses = (pg.getAmenities() == null)
                 ? List.of()
                 : pg.getAmenities().stream()
-                .map(this::toAmenityResponse)
-                .collect(Collectors.toList());
+                        .map(this::toAmenityResponse)
+                        .collect(Collectors.toList());
 
         List<PropertyPhotoResponse> photoResponses = (pg.getPhotos() == null)
                 ? List.of()
                 : pg.getPhotos().stream()
-                .map(this::toPhotoResponse)
-                .collect(Collectors.toList());
+                        .map(this::toPhotoResponse)
+                        .collect(Collectors.toList());
 
         List<ContactPersonResponse> contactResponses = (pg.getContacts() == null)
                 ? List.of()
                 : pg.getContacts().stream()
-                .map(this::toContactResponse)
-                .collect(Collectors.toList());
+                        .map(this::toContactResponse)
+                        .collect(Collectors.toList());
 
-        return new PgResponse(
-                pg.getId(),
-                pg.getName(),
-                pg.getType(),
-                pg.getPrice(),
-                pg.getRules(),
-                pg.getAvailability(),
-                pg.getAddress(),
-                (pg.getOwner() != null ? pg.getOwner().getId() : null),
-                (pg.getOwner() != null ? pg.getOwner().getFullName() : null),
-                (pg.getOwner() != null ? pg.getOwner().getEmail() : null),
-                floorResponses,
-                amenityResponses,
-                photoResponses,
-                contactResponses
-        );
+        if (isOwner) {
+
+            List<StaffResponse> staffResponses = (pg.getStaff() == null)
+                    ? List.of()
+                    : pg.getStaff().stream()
+                            .map(staff -> {
+                                StaffResponse s = new StaffResponse();
+                                s.setId(staff.getId());
+                                s.setFullName(staff.getFullName());
+                                s.setEmail(staff.getEmail());
+                                s.setPhone(staff.getPhone());
+                                s.setDesignation(staff.getDesignation());
+                                s.setJoinDate(staff.getJoinDate() != null ? staff.getJoinDate().toString() : null);
+                                s.setShiftTiming(staff.getShiftTiming());
+                                s.setActive(staff.getActive());
+                                s.setPgId(pg.getId());
+                                return s;
+                            })
+                            .collect(Collectors.toList());
+
+            return new PgResponse(
+                    pg.getId(),
+                    pg.getName(),
+                    pg.getType(),
+                    pg.getPrice(),
+                    pg.getRules(),
+                    pg.getAvailability(),
+                    pg.getAddress(),
+                    (pg.getOwner() != null ? pg.getOwner().getId() : null),
+                    (pg.getOwner() != null ? pg.getOwner().getFullName() : null),
+                    (pg.getOwner() != null ? pg.getOwner().getEmail() : null),
+                    floorResponses,
+                    amenityResponses,
+                    photoResponses,
+                    contactResponses,
+                    staffResponses
+            );
+        }
+
+        if (isStaff) {
+
+            return new PgResponse(
+                    pg.getId(),
+                    pg.getName(),
+                    pg.getType(),
+                    null,                               // staff cannot see price
+                    pg.getRules(),
+                    pg.getAvailability(),
+                    pg.getAddress(),
+                    null,                               // hide ownerId
+                    null,                               // hide ownerName
+                    null,                               // hide ownerEmail
+                    floorResponses,
+                    amenityResponses,
+                    photoResponses,
+                    contactResponses,
+                    List.of()                           // hide staff list
+            );
+        }
+
+        throw new RuntimeException("Invalid authentication state");
     }
 
     // ------------------ APPLY REQUEST ------------------
@@ -158,7 +210,6 @@ public class PgServiceImpl implements PgService {
         address.setPincode(request.getPincode());
         pg.setAddress(address);
 
-        // -------- CONTACTS MAPPING --------
         if (request.getContacts() != null) {
 
             List<ContactPerson> list = request.getContacts()
@@ -179,7 +230,7 @@ public class PgServiceImpl implements PgService {
         }
     }
 
-    // ------------------ SECURITY ------------------
+    // ------------------ SECURITY HELPERS ------------------
 
     private Long getLoggedInOwnerId() {
         Long id = SecurityUtils.getLoggedInOwnerId();
@@ -190,27 +241,51 @@ public class PgServiceImpl implements PgService {
 
     // ------------------ GET ALL PGs ------------------
 
-    @Override
+    @Override 
     public List<PgResponse> getAllPgs() {
-        Long ownerId = getLoggedInOwnerId();
 
-        return pgRepository.findByOwnerId(ownerId)
-                .stream()
-                .map(this::toPgResponse)
-                .collect(Collectors.toList());
+        Long ownerId = SecurityUtils.getLoggedInOwnerId();
+        Long staffPgId = SecurityUtils.getStaffPgId();
+
+        // OWNER: return all his PGs
+        if (ownerId != null) {
+            return pgRepository.findByOwnerId(ownerId)
+                    .stream()
+                    .map(this::toPgResponse)
+                    .collect(Collectors.toList());
+        }
+
+        // STAFF: return only THEIR PG
+        if (staffPgId != null) {
+            PgEntity pg = pgRepository.findById(staffPgId)
+                    .orElseThrow(() -> new RuntimeException("PG not found"));
+
+            return List.of(toPgResponse(pg));
+        }
+
+        throw new RuntimeException("Unauthorized access");
     }
 
     // ------------------ GET PG BY ID ------------------
 
     @Override
     public PgResponse getPgById(Long id) {
-        Long ownerId = getLoggedInOwnerId();
+        Long ownerId = SecurityUtils.getLoggedInOwnerId();
+        Long staffPgId = SecurityUtils.getStaffPgId();
 
-        PgEntity pg = pgRepository.findByIdAndOwnerId(id, ownerId)
-                .orElseThrow(() ->
-                        new RuntimeException("PG not found OR not owned by you: " + id));
+        if (ownerId != null) {
+            PgEntity pg = pgRepository.findByIdAndOwnerId(id, ownerId)
+                    .orElseThrow(() -> new RuntimeException("PG not found OR not owned by you"));
+            return toPgResponse(pg);
+        }
 
-        return toPgResponse(pg);
+        if (staffPgId != null && staffPgId.equals(id)) {
+            PgEntity pg = pgRepository.findById(id)
+                    .orElseThrow(() -> new RuntimeException("PG not found"));
+            return toPgResponse(pg);
+        }
+
+        throw new RuntimeException("Unauthorized PG access");
     }
 
     // ------------------ CREATE PG ------------------

@@ -1,6 +1,7 @@
 package com.parent.config;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import jakarta.servlet.FilterChain;
@@ -10,7 +11,9 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
+
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 
@@ -43,15 +46,31 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         String username = jwtService.extractUsername(token);
+        String role = jwtService.extractRole(token);
         Long ownerId = jwtService.extractOwnerId(token);
+        Long staffId = jwtService.extractStaffId(token);
+        Long pgId = jwtService.extractStaffPgId(token);
+
+        // Build authorities list safely (may be empty)
+        List<SimpleGrantedAuthority> authorities = new ArrayList<>();
+        if (StringUtils.hasText(role)) {
+            // role is expected to be like "ROLE_OWNER" or "ROLE_STAFF"
+            authorities.add(new SimpleGrantedAuthority(role));
+        }
 
         UsernamePasswordAuthenticationToken auth =
-                new UsernamePasswordAuthenticationToken(username, null, List.of());
+                new UsernamePasswordAuthenticationToken(
+                        username,
+                        null,
+                        authorities
+                );
 
         auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         SecurityContextHolder.getContext().setAuthentication(auth);
 
-        request.setAttribute("ownerId", ownerId);
+        if (ownerId != null) request.setAttribute("ownerId", ownerId);
+        if (staffId != null) request.setAttribute("staffId", staffId);
+        if (pgId != null) request.setAttribute("pgId", pgId);
 
         filterChain.doFilter(request, response);
     }

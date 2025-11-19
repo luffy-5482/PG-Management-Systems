@@ -48,16 +48,25 @@ public class JwtService {
     }
 
     // ----------------------------
-    // TOKEN VALIDATION
+    // VALIDATION
     // ----------------------------
     public boolean isTokenValid(String token) {
         try {
-            Jwts.parserBuilder().setSigningKey(getSigningKey()).build().parseClaimsJws(token);
+            Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token);
+
             return true;
+
         } catch (Exception ex) {
             return false;
         }
     }
+
+    // ----------------------------
+    // CLAIM EXTRACTORS
+    // ----------------------------
 
     public String extractUsername(String token) {
         return extractAllClaims(token).getSubject();
@@ -65,10 +74,27 @@ public class JwtService {
 
     public Long extractOwnerId(String token) {
         Object owner = extractAllClaims(token).get("ownerId");
-        if (owner == null) return null;
-        return Long.valueOf(String.valueOf(owner));
+        return owner == null ? null : Long.valueOf(String.valueOf(owner));
     }
 
+    public Long extractStaffId(String token) {
+        Object staff = extractAllClaims(token).get("staffId");
+        return staff == null ? null : Long.valueOf(String.valueOf(staff));
+    }
+
+    public Long extractStaffPgId(String token) {
+        Object pg = extractAllClaims(token).get("pgId");
+        return pg == null ? null : Long.valueOf(String.valueOf(pg));
+    }
+
+    public String extractRole(String token) {
+        Object role = extractAllClaims(token).get("role");
+        return role == null ? null : String.valueOf(role);
+    }
+
+    // ----------------------------
+    // INTERNAL
+    // ----------------------------
     private Claims extractAllClaims(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(getSigningKey())

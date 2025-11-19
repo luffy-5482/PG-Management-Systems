@@ -16,7 +16,6 @@ public class RoomRequest {
 	public RoomRequest() {
 	}
 
-	// Getters and Setters
 	public Long getPgId() {
 		return pgId;
 	}
