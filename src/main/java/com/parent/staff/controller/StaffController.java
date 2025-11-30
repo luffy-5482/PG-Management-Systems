@@ -41,7 +41,7 @@ public class StaffController {
         return ResponseEntity.ok(service.getStaff(id));
     }
 
-    @GetMapping("/pg/{pgId}")
+    @GetMapping("/pgs/{pgId}")
     public ResponseEntity<List<StaffResponse>> getByPg(@PathVariable Long pgId) {
         return ResponseEntity.ok(service.getStaffByPg(pgId));
     }

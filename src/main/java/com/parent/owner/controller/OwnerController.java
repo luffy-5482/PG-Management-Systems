@@ -7,21 +7,19 @@ import com.parent.config.SecurityUtils;
 import com.parent.owner.dto.OwnerRequest;
 import com.parent.owner.dto.OwnerResponse;
 import com.parent.owner.service.OwnerService;
-
+	
 @RestController
 @RequestMapping("/api/owners")
 @CrossOrigin(origins = "*")
 public class OwnerController {
-
+	
     private final OwnerService ownerService;
-
+    
     public OwnerController(OwnerService ownerService) {
         this.ownerService = ownerService;
     }
-
-    // ---------------------------------------------------------
-    // 🔥 Get MY profile (logged-in owner only)
-    // ---------------------------------------------------------
+    
+    
     @GetMapping
     public ResponseEntity<OwnerResponse> getMyProfile() {
         Long ownerId = SecurityUtils.getLoggedInOwnerId();

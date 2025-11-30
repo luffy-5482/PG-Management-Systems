@@ -33,6 +33,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         final String header = request.getHeader("Authorization");
 
+        // No token → continue
         if (!StringUtils.hasText(header) || !header.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
@@ -51,10 +52,23 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         Long staffId = jwtService.extractStaffId(token);
         Long pgId = jwtService.extractStaffPgId(token);
 
-        // Build authorities list safely (may be empty)
         List<SimpleGrantedAuthority> authorities = new ArrayList<>();
+
+        // --------------------------------------------------------
+        // ROLE NORMALIZATION (robust, no double ROLE_)
+        // --------------------------------------------------------
         if (StringUtils.hasText(role)) {
-            // role is expected to be like "ROLE_OWNER" or "ROLE_STAFF"
+            role = role.trim();
+
+            if (role.toUpperCase().startsWith("ROLE_")) {
+                // normalize to ROLE_OWNER / ROLE_STAFF
+                String core = role.substring(5).toUpperCase();
+                role = "ROLE_" + core;
+            } else {
+                // e.g. "OWNER" → "ROLE_OWNER"
+                role = "ROLE_" + role.toUpperCase();
+            }
+
             authorities.add(new SimpleGrantedAuthority(role));
         }
 
@@ -68,6 +82,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         SecurityContextHolder.getContext().setAuthentication(auth);
 
+        // Make IDs available via SecurityUtils
         if (ownerId != null) request.setAttribute("ownerId", ownerId);
         if (staffId != null) request.setAttribute("staffId", staffId);
         if (pgId != null) request.setAttribute("pgId", pgId);

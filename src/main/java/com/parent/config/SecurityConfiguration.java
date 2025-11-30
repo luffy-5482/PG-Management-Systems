@@ -2,6 +2,7 @@ package com.parent.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
@@ -27,7 +28,8 @@ public class SecurityConfiguration {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
-        http.cors(cors -> cors.configurationSource(corsConfigurationSource()))
+        http
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
 
@@ -38,7 +40,7 @@ public class SecurityConfiguration {
                 .requestMatchers("/api/staff/auth/**").permitAll()    // STAFF login
 
                 // --------------------------------------------------------
-                // STAFF DASHBOARD ROUTES (TOKEN ROLE_STAFF REQUIRED)
+                // STAFF DASHBOARD ROUTES (ROLE_STAFF)
                 // --------------------------------------------------------
                 .requestMatchers("/api/staff/dashboard/**").hasRole("STAFF")
                 .requestMatchers("/api/staff/tasks/**").hasRole("STAFF")
@@ -47,26 +49,32 @@ public class SecurityConfiguration {
                 .requestMatchers("/api/staff/profile/**").hasRole("STAFF")
                 .requestMatchers("/api/staff/tenants/**").hasRole("STAFF")
 
-                // --------------------------------------------------------
-                // STAFF MANAGEMENT (OWNER ONLY)
-                // --------------------------------------------------------
-                // create/update/delete staff
+                // OWNER: staff management + see staff per PG
                 .requestMatchers("/api/staff/manage/**").hasRole("OWNER")
+                .requestMatchers("/api/staff/pg/**").hasRole("OWNER")
 
                 // --------------------------------------------------------
-                // PG ACCESS
+                // PG ACCESS (OWNER + STAFF)
                 // --------------------------------------------------------
-
-                // View allowed for BOTH Owner + Staff
                 .requestMatchers("/api/pgs/**").hasAnyRole("OWNER", "STAFF")
 
                 // --------------------------------------------------------
-                // ROOMS & FLOORS
+                // ROOMS (OWNER writes, both read)
                 // --------------------------------------------------------
+                .requestMatchers(HttpMethod.POST,   "/api/rooms/**").hasRole("OWNER")
+                .requestMatchers(HttpMethod.PUT,    "/api/rooms/**").hasRole("OWNER")
+                .requestMatchers(HttpMethod.PATCH,  "/api/rooms/**").hasRole("OWNER")
+                .requestMatchers(HttpMethod.DELETE, "/api/rooms/**").hasRole("OWNER")
+                .requestMatchers(HttpMethod.GET,    "/api/rooms/**").hasAnyRole("OWNER", "STAFF")
 
-                // VIEW allowed for both OWNER + STAFF
-                .requestMatchers("/api/rooms/**").hasAnyRole("OWNER", "STAFF")
-                .requestMatchers("/api/floors/**").hasAnyRole("OWNER", "STAFF")
+                // --------------------------------------------------------
+                // FLOORS (OWNER writes, both read)
+                // --------------------------------------------------------
+                .requestMatchers(HttpMethod.GET,    "/api/floors/**").hasAnyRole("OWNER", "STAFF")
+                .requestMatchers(HttpMethod.POST,   "/api/floors/**").hasRole("OWNER")
+                .requestMatchers(HttpMethod.PUT,    "/api/floors/**").hasRole("OWNER")
+                .requestMatchers(HttpMethod.PATCH,  "/api/floors/**").hasRole("OWNER")
+                .requestMatchers(HttpMethod.DELETE, "/api/floors/**").hasRole("OWNER")
 
                 // --------------------------------------------------------
                 // OWNER-ONLY ROUTES
@@ -76,7 +84,7 @@ public class SecurityConfiguration {
                 .requestMatchers("/api/property-photos/**").hasRole("OWNER")
 
                 // --------------------------------------------------------
-                // ALL OTHER ROUTES SECURED BY DEFAULT
+                // ALL OTHER ROUTES
                 // --------------------------------------------------------
                 .anyRequest().authenticated()
             )
@@ -89,19 +97,31 @@ public class SecurityConfiguration {
     }
 
     // --------------------------------------------------------
-    // CORS CONFIG
+    // CORS CONFIG (localhost + Render)
     // --------------------------------------------------------
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
 
-        configuration.setAllowedOrigins(List.of("*"));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        CorsConfiguration config = new CorsConfiguration();
+
+        // Frontends that are allowed to call your backend
+        config.setAllowedOrigins(List.of(
+                "http://localhost:3000",
+                "http://localhost:5173",
+                "http://localhost:4200",
+                "http://localhost:8080",
+                "https://pgman.onrender.com",
+                "http://3.110.104.186",
+                "http://3.110.104.186:8080"
+        ));
+
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setExposedHeaders(List.of("Authorization"));
+        config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-
+        source.registerCorsConfiguration("/**", config);
         return source;
     }
 }

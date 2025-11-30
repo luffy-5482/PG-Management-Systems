@@ -60,7 +60,7 @@ public class AuthenticationService {
 
         Map<String, Object> claims = new HashMap<>();
         claims.put("ownerId", saved.getId());
-        claims.put("role", "ROLE_OWNER"); // ⭐ REQUIRED FOR SECURITY
+        claims.put("role", "OWNER");   // ⭐ FIXED → do NOT prepend ROLE_
 
         return new AuthenticationResponse(
                 jwtService.generateToken(saved.getEmail(), claims),
@@ -89,7 +89,7 @@ public class AuthenticationService {
 
         Map<String, Object> claims = new HashMap<>();
         claims.put("ownerId", owner.getId());
-        claims.put("role", "ROLE_OWNER"); // ⭐ FIXED
+        claims.put("role", "OWNER");  // ⭐ FIXED
 
         String token = jwtService.generateToken(owner.getEmail(), claims);
         String refresh = jwtService.generateRefreshToken(owner.getEmail(), claims);
@@ -118,7 +118,7 @@ public class AuthenticationService {
 
         Map<String, Object> claims = new HashMap<>();
         claims.put("ownerId", ownerId);
-        claims.put("role", "ROLE_OWNER"); // ⭐ FIXED
+        claims.put("role", "OWNER");  // ⭐ FIXED
 
         return new AuthenticationResponse(
                 jwtService.generateToken(email, claims),

@@ -21,6 +21,10 @@ public class JwtService {
     @Value("${jwt.secret}")
     private String jwtSecret;
 
+    // ✅ Universal issuer & audience for BOTH localhost + Render
+    private static final String ISSUER   = "pgman-auth";
+    private static final String AUDIENCE = "pgman-users";
+
     // ----------------------------
     // ACCESS TOKEN
     // ----------------------------
@@ -28,12 +32,14 @@ public class JwtService {
         return Jwts.builder()
                 .setClaims(extraClaims)
                 .setSubject(subject)
+                .setIssuer(ISSUER)            // NEW
+                .setAudience(AUDIENCE)        // NEW
                 .setIssuedAt(Date.from(Instant.now()))
                 .setExpiration(Date.from(Instant.now().plus(1, ChronoUnit.DAYS)))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
-
+ 
     // ----------------------------
     // REFRESH TOKEN
     // ----------------------------
@@ -41,6 +47,8 @@ public class JwtService {
         return Jwts.builder()
                 .setClaims(extraClaims)
                 .setSubject(subject)
+                .setIssuer(ISSUER)            // NEW
+                .setAudience(AUDIENCE)        // NEW
                 .setIssuedAt(Date.from(Instant.now()))
                 .setExpiration(Date.from(Instant.now().plus(7, ChronoUnit.DAYS)))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
@@ -52,12 +60,16 @@ public class JwtService {
     // ----------------------------
     public boolean isTokenValid(String token) {
         try {
-            Jwts.parserBuilder()
-                .setSigningKey(getSigningKey())
-                .build()
-                .parseClaimsJws(token);
+            Claims claims = Jwts.parserBuilder()
+                    .setSigningKey(getSigningKey())
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
 
-            return true;
+            // We mainly care about signature + expiry.
+            // Issuer/audience are set for NEW tokens, but we don't hard-fail old tokens.
+            Date expiration = claims.getExpiration();
+            return expiration == null || expiration.after(new Date());
 
         } catch (Exception ex) {
             return false;
@@ -104,6 +116,7 @@ public class JwtService {
     }
 
     private Key getSigningKey() {
+        // NOTE: jwtSecret must be BASE64 string in both localhost + Render
         byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
         return Keys.hmacShaKeyFor(keyBytes);
     }

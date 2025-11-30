@@ -2,14 +2,25 @@ package com.parent.pg.dto;
 
 public class ContactPersonRequest {
 
-    private String name;
-    private String email;
-    private String phoneNumber;
-    private String role;
-    private Boolean isPrimary;
-    private Long pgId;
+	private Long id; // optional: present when updating/deleting
+	private String name;
+	private String email;
+	private String phoneNumber;
+	private String role;
+	private Boolean isPrimary;
+	private Long pgId;
+	private Boolean delete; // optional flag: if true -> delete this contact
 
-    public ContactPersonRequest() {}
+	public ContactPersonRequest() {
+	}
+
+	public Long getId() {
+		return id;
+	}
+
+	public void setId(Long id) {
+		this.id = id;
+	}
 
 	public String getName() {
 		return name;
@@ -57,5 +68,13 @@ public class ContactPersonRequest {
 
 	public void setPgId(Long pgId) {
 		this.pgId = pgId;
-	}    
+	}
+
+	public Boolean getDelete() {
+		return delete;
+	}
+
+	public void setDelete(Boolean delete) {
+		this.delete = delete;
+	}
 }

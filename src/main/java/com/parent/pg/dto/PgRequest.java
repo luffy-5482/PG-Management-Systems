@@ -14,8 +14,12 @@ public class PgRequest {
 	private String city;
 	private String state;
 	private String pincode;
+
+	// Nested lists for create/update (optional)
 	private List<ContactPersonRequest> contacts;
-	
+	private List<AmenityRequest> amenities;
+	private List<PropertyPhotoRequest> photos;
+	private List<FloorRequest> floors;
 
 	public PgRequest() {
 	}
@@ -108,4 +112,29 @@ public class PgRequest {
 	public void setContacts(List<ContactPersonRequest> contacts) {
 		this.contacts = contacts;
 	}
+
+	public List<AmenityRequest> getAmenities() {
+		return amenities;
+	}
+
+	public void setAmenities(List<AmenityRequest> amenities) {
+		this.amenities = amenities;
+	}
+
+	public List<PropertyPhotoRequest> getPhotos() {
+		return photos;
+	}
+
+	public void setPhotos(List<PropertyPhotoRequest> photos) {
+		this.photos = photos;
+	}
+
+	public List<FloorRequest> getFloors() {
+		return floors;
+	}
+
+	public void setFloors(List<FloorRequest> floors) {
+		this.floors = floors;
+	}
+	
 }
