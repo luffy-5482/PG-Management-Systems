@@ -36,6 +36,7 @@ public class SecurityConfiguration {
                 // --------------------------------------------------------
                 // PUBLIC (NO TOKEN REQUIRED)
                 // --------------------------------------------------------
+            	.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/api/auth/**").permitAll()          // OWNER auth
                 .requestMatchers("/api/staff/auth/**").permitAll()    // STAFF login
 

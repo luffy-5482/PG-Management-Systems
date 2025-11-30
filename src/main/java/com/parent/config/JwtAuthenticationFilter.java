@@ -26,6 +26,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        String path = request.getServletPath();
+
+        return path.startsWith("/api/auth/")
+                || path.startsWith("/api/staff/auth/")
+                || path.startsWith("/api/public/")
+                || request.getMethod().equalsIgnoreCase("OPTIONS"); // IMPORTANT FOR AWS CORS
+    }
+
+    @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain)
@@ -54,18 +64,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         List<SimpleGrantedAuthority> authorities = new ArrayList<>();
 
-        // --------------------------------------------------------
-        // ROLE NORMALIZATION (robust, no double ROLE_)
-        // --------------------------------------------------------
+        // ROLE NORMALIZATION
         if (StringUtils.hasText(role)) {
             role = role.trim();
 
             if (role.toUpperCase().startsWith("ROLE_")) {
-                // normalize to ROLE_OWNER / ROLE_STAFF
                 String core = role.substring(5).toUpperCase();
                 role = "ROLE_" + core;
             } else {
-                // e.g. "OWNER" → "ROLE_OWNER"
                 role = "ROLE_" + role.toUpperCase();
             }
 
@@ -82,7 +88,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         SecurityContextHolder.getContext().setAuthentication(auth);
 
-        // Make IDs available via SecurityUtils
         if (ownerId != null) request.setAttribute("ownerId", ownerId);
         if (staffId != null) request.setAttribute("staffId", staffId);
         if (pgId != null) request.setAttribute("pgId", pgId);
