@@ -26,14 +26,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+    protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getServletPath();
 
         return path.startsWith("/api/auth/")
                 || path.startsWith("/api/staff/auth/")
                 || path.startsWith("/api/public/")
-                || request.getMethod().equalsIgnoreCase("OPTIONS"); // IMPORTANT FOR AWS CORS
+                || request.getMethod().equalsIgnoreCase("OPTIONS");  // needed for CORS preflight
     }
+
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
