@@ -5,6 +5,8 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.parent.owner.model.Owner;
+import com.parent.staff.model.StaffEntity;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
@@ -14,7 +16,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 
 @Entity
@@ -51,17 +52,34 @@ public class PgEntity {
 	@JsonManagedReference(value = "pg-floor")
 	private List<Floor> floors;
 	
-	public List<RoomEntity> getRooms() {
-		return rooms;
-	}
-
-	public void setRooms(List<RoomEntity> rooms) {
-		this.rooms = rooms;
-	}
 	@OneToMany(mappedBy = "pg", cascade = CascadeType.ALL, orphanRemoval = true)
 	@JsonManagedReference(value = "pg-room")
 	private List<RoomEntity> rooms; // Add this
+	
+	@OneToMany(mappedBy = "pg", cascade = CascadeType.ALL, orphanRemoval = true)
+	private List<ContactPerson> contacts;
+	
+	@OneToMany(mappedBy = "pg", cascade = CascadeType.ALL, orphanRemoval = true)
+	@JsonManagedReference(value = "pg-staff")
+	private List<StaffEntity> staff;
+	
+	
+	public List<ContactPerson> getContacts() {
+		return contacts;
+	}
+	
+	public void setContacts(List<ContactPerson> contacts) {
+		this.contacts = contacts;
+	}
 
+	public List<RoomEntity> getRooms() {
+		return rooms;
+	}
+	
+	public void setRooms(List<RoomEntity> rooms) {
+		this.rooms = rooms;
+	}
+	
 	public List<Floor> getFloors() {
 		return floors;
 	}
@@ -154,18 +172,13 @@ public class PgEntity {
 	public void setPhotos(List<PropertyPhoto> photos) {
 		this.photos = photos;
 	}
+
+	public List<StaffEntity> getStaff() {
+		return staff;
+	}
+
+	public void setStaff(List<StaffEntity> staff) {
+		this.staff = staff;
+	}
 	
-	@OneToOne(mappedBy = "pg", cascade = CascadeType.ALL, orphanRemoval = true)
-	@JsonManagedReference(value = "pg-contact")
-	private ContactPerson contactPerson;
-
-	// Getter & Setter
-	public ContactPerson getContactPerson() {
-	    return contactPerson;
-	}
-
-	public void setContactPerson(ContactPerson contactPerson) {
-	    this.contactPerson = contactPerson;
-	}
-
 }

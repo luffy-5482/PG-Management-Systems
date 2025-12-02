@@ -1,8 +1,10 @@
 package com.parent.pg.dto;
 
 import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.parent.pg.model.Address;
+import com.parent.staff.dto.StaffResponse;
 
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 public class PgResponse {
@@ -21,14 +23,25 @@ public class PgResponse {
 	private List<FloorResponse> floors;
 	private List<AmenityResponse> amenities;
 	private List<PropertyPhotoResponse> photos;
+	private List<ContactPersonResponse> contacts;
+	private List<StaffResponse> staff;
+	
 
-	private ContactPersonResponse contactPerson;
 
-	public PgResponse() {}
+	public List<ContactPersonResponse> getContacts() {
+		return contacts;
+	}
+
+	public void setContacts(List<ContactPersonResponse> contacts) {
+		this.contacts = contacts;
+	}
+
+	public PgResponse() {
+	}
 
 	public PgResponse(Long id, String name, String type, Double price, String rules, Boolean availability,
-			Address address, Long ownerId, String ownerName, String ownerEmail,
-			List<FloorResponse> floors, List<AmenityResponse> amenities, List<PropertyPhotoResponse> photos) {
+			Address address, Long ownerId, String ownerName, String ownerEmail, List<FloorResponse> floors,
+			List<AmenityResponse> amenities, List<PropertyPhotoResponse> photos,List<ContactPersonResponse> contactResponses,List<StaffResponse> staff) {
 		this.id = id;
 		this.name = name;
 		this.type = type;
@@ -42,6 +55,8 @@ public class PgResponse {
 		this.floors = floors;
 		this.amenities = amenities;
 		this.photos = photos;
+		this.contacts= contactResponses;
+		this.staff=staff;
 	}
 
 	public Long getId() {
@@ -148,13 +163,14 @@ public class PgResponse {
 		this.photos = photos;
 	}
 
-	// Getters and Setters omitted for brevity (keep as you have them)
-	
-	public ContactPersonResponse getContactPerson() {
-	    return contactPerson;
-	}
-	public void setContactPerson(ContactPersonResponse contactPerson) {
-	    this.contactPerson = contactPerson;
+	public List<StaffResponse> getStaff() {
+		return staff;
 	}
 
+	public void setStaff(List<StaffResponse> staff) {
+		this.staff = staff;
+	}
+	
+
+	// Getters and Setters omitted for brevity (keep as you have them)
 }

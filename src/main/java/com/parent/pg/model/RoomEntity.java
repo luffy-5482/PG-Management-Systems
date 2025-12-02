@@ -1,47 +1,44 @@
 package com.parent.pg.model;
 
-import java.util.List;
 import jakarta.persistence.*;
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import java.util.List;
 
 @Entity
 @Table(name = "rooms")
 public class RoomEntity {
 
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-	private Integer capacity;
-	private String roomNumber;
-	private Double pricePerBed;
-	private Boolean available = true;
-	private String notes;
+    private Integer capacity;
+    private String roomNumber;
+    private Double pricePerBed;
+    private Boolean available = true;
+    private String notes;
 
-	@ElementCollection
-	@CollectionTable(name = "room_amenities", joinColumns = @JoinColumn(name = "room_id"))
-	@Column(name = "amenity")
-	private List<String> amenities;
 
-	@ElementCollection
-	@CollectionTable(name = "room_furniture", joinColumns = @JoinColumn(name = "room_id"))
-	@Column(name = "furniture_item")
-	private List<String> furniture;
+    @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<RoomAmenity> amenities;
 
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "pg_id", nullable = false)
-	@JsonBackReference(value = "pg-room")
-	private PgEntity pg;
+    @ElementCollection
+    @CollectionTable(name = "room_furniture", joinColumns = @JoinColumn(name = "room_id"))
+    @Column(name = "furniture_item")
+    private List<String> furniture;
 
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "floor_id", nullable = false)
-	@JsonBackReference(value = "floor-room")
-	private Floor floor;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "pg_id", nullable = false)
+    @JsonBackReference(value = "pg-room")
+    private PgEntity pg;
 
-	public RoomEntity() {
-	}
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "floor_id", nullable = false)
+    @JsonBackReference(value = "floor-room")
+    private Floor floor;
 
-	// Getters & Setters
+    public RoomEntity() {}
+
 	public Long getId() {
 		return id;
 	}
@@ -90,11 +87,11 @@ public class RoomEntity {
 		this.notes = notes;
 	}
 
-	public List<String> getAmenities() {
+	public List<RoomAmenity> getAmenities() {
 		return amenities;
 	}
 
-	public void setAmenities(List<String> amenities) {
+	public void setAmenities(List<RoomAmenity> amenities) {
 		this.amenities = amenities;
 	}
 

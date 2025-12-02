@@ -1,5 +1,7 @@
 package com.parent.pg.dto;
 
+import java.util.List;
+
 public class PgRequest {
 	private Long ownerId;
 	private String name;
@@ -13,8 +15,12 @@ public class PgRequest {
 	private String state;
 	private String pincode;
 
-	private ContactPersonRequest contactPerson;
-	
+	// Nested lists for create/update (optional)
+	private List<ContactPersonRequest> contacts;
+	private List<AmenityRequest> amenities;
+	private List<PropertyPhotoRequest> photos;
+	private List<FloorRequest> floors;
+
 	public PgRequest() {
 	}
 
@@ -98,11 +104,37 @@ public class PgRequest {
 	public void setPincode(String pincode) {
 		this.pincode = pincode;
 	}
-	public ContactPersonRequest getContactPerson() {
-        return contactPerson;
-    }
-    public void setContactPerson(ContactPersonRequest contactPerson) {
-        this.contactPerson = contactPerson;
-    }
 
+	public List<ContactPersonRequest> getContacts() {
+		return contacts;
+	}
+
+	public void setContacts(List<ContactPersonRequest> contacts) {
+		this.contacts = contacts;
+	}
+
+	public List<AmenityRequest> getAmenities() {
+		return amenities;
+	}
+
+	public void setAmenities(List<AmenityRequest> amenities) {
+		this.amenities = amenities;
+	}
+
+	public List<PropertyPhotoRequest> getPhotos() {
+		return photos;
+	}
+
+	public void setPhotos(List<PropertyPhotoRequest> photos) {
+		this.photos = photos;
+	}
+
+	public List<FloorRequest> getFloors() {
+		return floors;
+	}
+
+	public void setFloors(List<FloorRequest> floors) {
+		this.floors = floors;
+	}
+	
 }
