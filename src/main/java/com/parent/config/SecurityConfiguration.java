@@ -40,6 +40,8 @@ public class SecurityConfiguration {
                 .requestMatchers("/api/auth/**").permitAll()          // OWNER auth
                 .requestMatchers("/api/staff/auth/**").permitAll()    // STAFF login
 
+                .requestMatchers("/api/tenant/**").permitAll()
+
                 // --------------------------------------------------------
                 // STAFF DASHBOARD ROUTES (ROLE_STAFF)
                 // --------------------------------------------------------
