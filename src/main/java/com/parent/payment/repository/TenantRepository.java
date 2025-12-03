@@ -8,9 +8,9 @@ import java.util.Optional;
 
 @Repository
 public interface TenantRepository extends JpaRepository<Tenant, Long> {
-    // JpaRepository already provides findById(Long). This is shown to make intent explicit.
+
     Optional<Tenant> findById(Long id);
 
-    // If you need to look up by email (common), add:
-    // Optional<Tenant> findByEmail(String email);
+    // 👇 ADD THIS back in
+    Optional<Tenant> findByEmail(String email);
 }

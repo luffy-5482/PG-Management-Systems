@@ -40,6 +40,9 @@ public class SecurityConfiguration {
                         .requestMatchers("/api/admin/auth/**").permitAll()     // admin login
                         .requestMatchers("/api/manager/auth/**").permitAll()   // manager login
 
+                     // 👉 TEMP: make tenant APIs public so you can test
+                        .requestMatchers("/api/tenant/**").permitAll()
+                        
                         // --------------------------------------------------------
                         // PG ACCESS
                         // --------------------------------------------------------
