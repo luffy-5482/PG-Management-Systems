@@ -1,11 +1,10 @@
 package com.parent.pg.model;
 
-import java.util.List;
+import java.util.List;	
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.parent.owner.model.Owner;
-import com.parent.staff.model.StaffEntity;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Embedded;
@@ -59,9 +58,6 @@ public class PgEntity {
 	@OneToMany(mappedBy = "pg", cascade = CascadeType.ALL, orphanRemoval = true)
 	private List<ContactPerson> contacts;
 	
-	@OneToMany(mappedBy = "pg", cascade = CascadeType.ALL, orphanRemoval = true)
-	@JsonManagedReference(value = "pg-staff")
-	private List<StaffEntity> staff;
 	
 	
 	public List<ContactPerson> getContacts() {
@@ -173,12 +169,4 @@ public class PgEntity {
 		this.photos = photos;
 	}
 
-	public List<StaffEntity> getStaff() {
-		return staff;
-	}
-
-	public void setStaff(List<StaffEntity> staff) {
-		this.staff = staff;
-	}
-	
 }

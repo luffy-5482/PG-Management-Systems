@@ -20,79 +20,136 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 
 @Entity
-@Table(
-    name = "owners",
-    uniqueConstraints = @UniqueConstraint(columnNames = { "email" })
-)
+@Table(name = "owners", uniqueConstraints = @UniqueConstraint(columnNames = { "email" }))
 public class Owner implements UserDetails {
 
-    @Id
-    private Long id;   // 🔥 MANUAL ID — NO AUTO INCREMENT
+	@Id
+	private Long id; // 🔥 MANUAL ID — NO AUTO INCREMENT
 
-    private String fullName;
+	private String fullName;
 
-    @Column(unique = true)
-    private String email;
+	@Column(unique = true)
+	private String email;
 
-    private String phoneNumber;
-    private String gender;
+	private String phoneNumber;
+	private String gender;
 
-    @Column(nullable = false, columnDefinition = "VARCHAR(255) DEFAULT 'ROLE_OWNER'")
-    private String role = "ROLE_OWNER";
+	@Column(nullable = false, columnDefinition = "VARCHAR(255) DEFAULT 'ROLE_OWNER'")
+	private String role = "ROLE_OWNER";
 
-    @JsonIgnore
-    @Column(nullable = false)
-    private String password; // hashed password
+	@JsonIgnore
+	@Column(nullable = false)
+	private String password; // hashed password
 
-    @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference
-    private List<PgEntity> pgs;
+	@OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true)
+	@JsonManagedReference
+	private List<PgEntity> pgs;
 
-    public Owner() {}
+	public Owner() {
+	}
 
-    // Getters and Setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+	// Getters and Setters
+	public Long getId() {
+		return id;
+	}
 
-    public String getFullName() { return fullName; }
-    public void setFullName(String fullName) { this.fullName = fullName; }
+	public void setId(Long id) {
+		this.id = id;
+	}
 
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
+	public String getFullName() {
+		return fullName;
+	}
 
-    public String getPhoneNumber() { return phoneNumber; }
-    public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
+	public void setFullName(String fullName) {
+		this.fullName = fullName;
+	}
 
-    public String getGender() { return gender; }
-    public void setGender(String gender) { this.gender = gender; }
+	public String getEmail() {
+		return email;
+	}
 
-    public String getRole() { return role; }
-    public void setRole(String role) { this.role = role; }
+	public void setEmail(String email) {
+		this.email = email;
+	}
 
-    @Override
-    @JsonIgnore
-    public String getPassword() { return password; }
-    public void setPassword(String password) { this.password = password; }
+	public String getPhoneNumber() {
+		return phoneNumber;
+	}
 
-    public List<PgEntity> getPgs() { return pgs; }
-    public void setPgs(List<PgEntity> pgs) { this.pgs = pgs; }
+	public void setPhoneNumber(String phoneNumber) {
+		this.phoneNumber = phoneNumber;
+	}
 
-    // ----- USERDETAILS METHODS -----
+	public String getGender() {
+		return gender;
+	}
 
-    @Override
-    @JsonIgnore
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority(this.role));
-    }
+	public void setGender(String gender) {
+		this.gender = gender;
+	}
 
-    @Override
-    @JsonIgnore
-    public String getUsername() {
-        return this.email; // email used as login username
-    }
+	public String getRole() {
+		return role;
+	}
 
-    @Override @JsonIgnore public boolean isAccountNonExpired() { return true; }
-    @Override @JsonIgnore public boolean isAccountNonLocked() { return true; }
-    @Override @JsonIgnore public boolean isCredentialsNonExpired() { return true; }
-    @Override @JsonIgnore public boolean isEnabled() { return true; }
+	public void setRole(String role) {
+		this.role = role;
+	}
+
+	@Override
+	@JsonIgnore
+	public String getPassword() {
+		return password;
+	}
+
+	public void setPassword(String password) {
+		this.password = password;
+	}
+
+	public List<PgEntity> getPgs() {
+		return pgs;
+	}
+
+	public void setPgs(List<PgEntity> pgs) {
+		this.pgs = pgs;
+	}
+
+	// ----- USERDETAILS METHODS -----
+
+	@Override
+	@JsonIgnore
+	public Collection<? extends GrantedAuthority> getAuthorities() {
+		return List.of(new SimpleGrantedAuthority(this.role));
+	}
+
+	@Override
+	@JsonIgnore
+	public String getUsername() {
+		return this.email; // email used as login username
+	}
+
+	@Override
+	@JsonIgnore
+	public boolean isAccountNonExpired() {
+		return true;
+	}
+
+	@Override
+	@JsonIgnore
+	public boolean isAccountNonLocked() {
+		return true;
+	}
+
+	@Override
+	@JsonIgnore
+	public boolean isCredentialsNonExpired() {
+		return true;
+	}
+
+	@Override
+	@JsonIgnore
+	public boolean isEnabled() {
+		return true;
+	}
 }

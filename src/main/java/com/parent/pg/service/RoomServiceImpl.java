@@ -39,14 +39,7 @@ public class RoomServiceImpl implements RoomService {
     // ---------------------------------------------------------
     // 🔐 Get logged-in STAFF info
     // ---------------------------------------------------------
-    private Long getStaffId() {
-        return SecurityUtils.getLoggedInStaffId();
-    }
-
-    private Long getStaffPgId() {
-        return SecurityUtils.getStaffPgId();
-    }
-
+    
     // ---------------------------------------------------------
     // 🚀 Convert entity → response
     // ---------------------------------------------------------
@@ -142,7 +135,6 @@ public class RoomServiceImpl implements RoomService {
     public List<RoomResponse> getRoomsByPgId(Long pgId) {
 
         Long ownerId = getOwnerId();
-        Long staffId = getStaffId();
 
         if (ownerId != null) {
             // OWNER
@@ -154,15 +146,6 @@ public class RoomServiceImpl implements RoomService {
                     .collect(Collectors.toList());
         }
 
-        if (staffId != null) {
-            // STAFF
-            if (!pgId.equals(getStaffPgId()))
-                throw new RuntimeException("Unauthorized: Staff belongs to a different PG");
-
-            return roomRepository.findByPg_Id(pgId).stream()
-                    .map(this::toResponse)
-                    .collect(Collectors.toList());
-        }
 
         throw new RuntimeException("Unauthorized");
     }
@@ -174,7 +157,6 @@ public class RoomServiceImpl implements RoomService {
     public List<RoomResponse> getRoomsByFloorId(Long floorId) {
 
         Long ownerId = getOwnerId();
-        Long staffId = getStaffId();
 
         if (ownerId != null) {
             floorRepository.findByIdAndPgOwnerId(floorId, ownerId)
@@ -185,17 +167,6 @@ public class RoomServiceImpl implements RoomService {
                     .collect(Collectors.toList());
         }
 
-        if (staffId != null) {
-            Floor floor = floorRepository.findById(floorId)
-                    .orElseThrow(() -> new RuntimeException("Invalid floor"));
-
-            if (!floor.getPg().getId().equals(getStaffPgId()))
-                throw new RuntimeException("Unauthorized: Not your PG");
-
-            return floor.getRooms().stream()
-                    .map(this::toResponse)
-                    .collect(Collectors.toList());
-        }
 
         throw new RuntimeException("Unauthorized");
     }
@@ -207,7 +178,6 @@ public class RoomServiceImpl implements RoomService {
     public RoomResponse getRoomById(Long id) {
 
         Long ownerId = getOwnerId();
-        Long staffId = getStaffId();
 
         if (ownerId != null) {
             RoomEntity room = roomRepository.findByIdAndPgOwnerId(id, ownerId)
@@ -216,15 +186,6 @@ public class RoomServiceImpl implements RoomService {
             return toResponse(room);
         }
 
-        if (staffId != null) {
-            RoomEntity room = roomRepository.findById(id)
-                    .orElseThrow(() -> new RuntimeException("Room not found"));
-
-            if (!room.getPg().getId().equals(getStaffPgId()))
-                throw new RuntimeException("Unauthorized");
-
-            return toResponse(room);
-        }
 
         throw new RuntimeException("Unauthorized");
     }
@@ -236,10 +197,6 @@ public class RoomServiceImpl implements RoomService {
     public RoomResponse createRoom(RoomRequest req) {
 
         Long ownerId = getOwnerId();
-        Long staffId = getStaffId();
-
-        if (staffId != null)
-            throw new RuntimeException("Staff cannot create rooms");
 
         if (ownerId == null)
             throw new RuntimeException("Unauthorized");
@@ -264,22 +221,11 @@ public class RoomServiceImpl implements RoomService {
     public RoomResponse updateRoom(Long id, RoomRequest req) {
 
         Long ownerId = getOwnerId();
-        Long staffId = getStaffId();
 
         RoomEntity existing = roomRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Room not found"));
 
         // STAFF update
-        if (staffId != null) {
-
-            if (!existing.getPg().getId().equals(getStaffPgId()))
-                throw new RuntimeException("Unauthorized: Staff PG mismatch");
-
-            applyStaffChanges(req, existing);
-
-            RoomEntity updated = roomRepository.save(existing);
-            return toResponse(updated);
-        }
 
         // OWNER update
         if (ownerId != null) {
@@ -315,10 +261,7 @@ public class RoomServiceImpl implements RoomService {
     public void deleteRoom(Long id) {
 
         Long ownerId = getOwnerId();
-        Long staffId = getStaffId();
 
-        if (staffId != null)
-            throw new RuntimeException("Staff cannot delete rooms");
 
         if (ownerId == null)
             throw new RuntimeException("Unauthorized");

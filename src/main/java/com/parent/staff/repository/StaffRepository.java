@@ -1,15 +1,10 @@
 package com.parent.staff.repository;
 
-import java.util.List;
-import java.util.Optional;
-
+import com.parent.staff.model.Staff;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import com.parent.staff.model.StaffEntity;
+import java.util.List;
 
-public interface StaffRepository extends JpaRepository<StaffEntity, Long> {
-
-    Optional<StaffEntity> findByEmail(String email);
-
-    List<StaffEntity> findByPgId(Long pgId);
+public interface StaffRepository extends JpaRepository<Staff, Long> {
+    List<Staff> findByPgId(Long pgId);
 }

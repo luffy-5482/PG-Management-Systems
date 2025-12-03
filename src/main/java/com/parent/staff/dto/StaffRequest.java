@@ -2,85 +2,34 @@ package com.parent.staff.dto;
 
 public class StaffRequest {
 
-	private Long pgId;
-	private String fullName;
-	private String email;
-	private String phone;
-	private String password;
-	private String designation;
-	private String joinDate;
-	private String shiftTiming;
-	private Boolean active;
-
-	public Long getPgId() {
-		return pgId;
-	}
-
-	public void setPgId(Long pgId) {
-		this.pgId = pgId;
-	}
-
+    public String fullName;
+    public String phone;
+    public String role;
+    public Long pgId;
 	public String getFullName() {
 		return fullName;
 	}
-
 	public void setFullName(String fullName) {
 		this.fullName = fullName;
 	}
-
-	public String getEmail() {
-		return email;
-	}
-
-	public void setEmail(String email) {
-		this.email = email;
-	}
-
 	public String getPhone() {
 		return phone;
 	}
-
 	public void setPhone(String phone) {
 		this.phone = phone;
 	}
-
-	public String getPassword() {
-		return password;
+	public String getRole() {
+		return role;
 	}
-
-	public void setPassword(String password) {
-		this.password = password;
+	public void setRole(String role) {
+		this.role = role;
 	}
-
-	public String getDesignation() {
-		return designation;
+	public Long getPgId() {
+		return pgId;
 	}
-
-	public void setDesignation(String designation) {
-		this.designation = designation;
+	public void setPgId(Long pgId) {
+		this.pgId = pgId;
 	}
-
-	public String getJoinDate() {
-		return joinDate;
-	}
-
-	public void setJoinDate(String joinDate) {
-		this.joinDate = joinDate;
-	}
-
-	public String getShiftTiming() {
-		return shiftTiming;
-	}
-
-	public void setShiftTiming(String shiftTiming) {
-		this.shiftTiming = shiftTiming;
-	}
-
-	public Boolean getActive() {
-		return active;
-	}
-
-	public void setActive(Boolean active) {
-		this.active = active;
-	}
+    
 }
+

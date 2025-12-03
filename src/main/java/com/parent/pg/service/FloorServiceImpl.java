@@ -37,13 +37,6 @@ public class FloorServiceImpl implements FloorService {
         return SecurityUtils.getLoggedInOwnerId();
     }
 
-    private Long getStaffId() {
-        return SecurityUtils.getLoggedInStaffId();
-    }
-
-    private Long getStaffPgId() {
-        return SecurityUtils.getStaffPgId();
-    }
 
     // ---------------------------
     // ♻️ Convert Room → DTO
@@ -121,7 +114,6 @@ public class FloorServiceImpl implements FloorService {
     public List<FloorResponse> getFloorsByPgId(Long pgId) {
 
         Long ownerId = getOwnerId();
-        Long staffId = getStaffId();
 
         if (ownerId != null) {
             pgRepository.findByIdAndOwnerId(pgId, ownerId)
@@ -133,14 +125,6 @@ public class FloorServiceImpl implements FloorService {
                     .collect(Collectors.toList());
         }
 
-        if (staffId != null) {
-            if (!pgId.equals(getStaffPgId()))
-                throw new RuntimeException("Unauthorized: Staff belongs to another PG");
-
-            return floorRepository.findByPg_Id(pgId).stream()
-                    .map(this::toFloorResponse)
-                    .collect(Collectors.toList());
-        }
 
         throw new RuntimeException("Unauthorized");
     }
@@ -152,7 +136,6 @@ public class FloorServiceImpl implements FloorService {
     public FloorResponse getFloorById(Long id) {
 
         Long ownerId = getOwnerId();
-        Long staffId = getStaffId();
 
         if (ownerId != null) {
             Floor floor = floorRepository.findByIdAndPgOwnerId(id, ownerId)
@@ -161,15 +144,6 @@ public class FloorServiceImpl implements FloorService {
             return toFloorResponse(floor);
         }
 
-        if (staffId != null) {
-            Floor floor = floorRepository.findById(id)
-                    .orElseThrow(() -> new RuntimeException("Floor not found"));
-
-            if (!floor.getPg().getId().equals(getStaffPgId()))
-                throw new RuntimeException("Unauthorized floor access");
-
-            return toFloorResponse(floor);
-        }
 
         throw new RuntimeException("Unauthorized");
     }
@@ -181,10 +155,6 @@ public class FloorServiceImpl implements FloorService {
     public FloorResponse createFloor(FloorRequest req) {
 
         Long ownerId = getOwnerId();
-        Long staffId = getStaffId();
-
-        if (staffId != null)
-            throw new RuntimeException("Staff cannot create floors");
 
         if (ownerId == null)
             throw new RuntimeException("Unauthorized");
@@ -206,20 +176,10 @@ public class FloorServiceImpl implements FloorService {
     public FloorResponse updateFloor(Long id, FloorRequest req) {
 
         Long ownerId = getOwnerId();
-        Long staffId = getStaffId();
 
         Floor existing = floorRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Floor not found"));
 
-        if (staffId != null) {
-            if (!existing.getPg().getId().equals(getStaffPgId()))
-                throw new RuntimeException("Unauthorized floor update");
-
-            applyStaffChanges(req, existing);
-
-            Floor updated = floorRepository.save(existing);
-            return toFloorResponse(updated);
-        }
 
         if (ownerId != null) {
             existing = floorRepository.findByIdAndPgOwnerId(id, ownerId)
@@ -248,10 +208,7 @@ public class FloorServiceImpl implements FloorService {
     public void deleteFloor(Long id) {
 
         Long ownerId = getOwnerId();
-        Long staffId = getStaffId();
 
-        if (staffId != null)
-            throw new RuntimeException("Staff cannot delete floors");
 
         if (ownerId == null)
             throw new RuntimeException("Unauthorized");

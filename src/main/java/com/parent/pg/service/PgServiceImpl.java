@@ -2,49 +2,91 @@ package com.parent.pg.service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
+import com.parent.config.JwtService;
 import com.parent.config.SecurityUtils;
 import com.parent.owner.model.Owner;
 import com.parent.owner.repository.OwnerRepository;
-import com.parent.pg.dto.*;
-import com.parent.pg.model.*;
-import com.parent.pg.repository.*;
-import com.parent.staff.dto.StaffResponse;
+import com.parent.pg.dto.AmenityRequest;
+import com.parent.pg.dto.AmenityResponse;
+import com.parent.pg.dto.ContactPersonRequest;
+import com.parent.pg.dto.ContactPersonResponse;
+import com.parent.pg.dto.FloorRequest;
+import com.parent.pg.dto.FloorResponse;
+import com.parent.pg.dto.PgRequest;
+import com.parent.pg.dto.PgResponse;
+import com.parent.pg.dto.PropertyPhotoRequest;
+import com.parent.pg.dto.PropertyPhotoResponse;
+import com.parent.pg.dto.RoomRequest;
+import com.parent.pg.dto.RoomResponse;
+import com.parent.pg.model.Address;
+import com.parent.pg.model.Amenity;
+import com.parent.pg.model.ContactPerson;
+import com.parent.pg.model.Floor;
+import com.parent.pg.model.PgEntity;
+import com.parent.pg.model.PropertyPhoto;
+import com.parent.pg.model.RoomAmenity;
+import com.parent.pg.model.RoomEntity;
+import com.parent.pg.repository.AminityRepo;
+import com.parent.pg.repository.ContactPersonRepository;
+import com.parent.pg.repository.FloorRepository;
+import com.parent.pg.repository.PgRepository;
+import com.parent.pg.repository.PropertyPhotoRepository;
+import com.parent.pg.repository.RoomRepository;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 @Service
 public class PgServiceImpl implements PgService {
 
 	@Autowired
 	private PgRepository pgRepository;
+
 	@Autowired
 	private OwnerRepository ownerRepository;
 
-	// Repositories used for nested operations
 	@Autowired
 	private ContactPersonRepository contactRepo;
+
 	@Autowired
 	private AminityRepo amenityRepo;
+
 	@Autowired
 	private PropertyPhotoRepository propertyPhotoRepository;
+
 	@Autowired
 	private FloorRepository floorRepository;
+
 	@Autowired
 	private RoomRepository roomRepository;
 
-	// ------------------ MAPPERS ------------------
+	@Autowired
+	private JwtService jwtService; // ⭐ REQUIRED FOR MANAGER PG RESTRICTION
+
+
+
+	// ---------------------- MAPPERS ----------------------
 
 	private AmenityResponse toAmenityResponse(Amenity amenity) {
-		return new AmenityResponse(amenity.getId(), amenity.getName(),
+		return new AmenityResponse(
+				amenity.getId(),
+				amenity.getName(),
 				(amenity.getPg() != null ? amenity.getPg().getId() : null));
 	}
 
 	private PropertyPhotoResponse toPhotoResponse(PropertyPhoto photo) {
-		return new PropertyPhotoResponse(photo.getId(), photo.getImageUrl(), photo.getIsMain(),
+		return new PropertyPhotoResponse(
+				photo.getId(),
+				photo.getImageUrl(),
+				photo.getIsMain(),
 				(photo.getPg() != null ? photo.getPg().getId() : null));
 	}
 
@@ -53,8 +95,15 @@ public class PgServiceImpl implements PgService {
 		List<String> amenityNames = (room.getAmenities() == null) ? List.of()
 				: room.getAmenities().stream().map(RoomAmenity::getAmenityName).collect(Collectors.toList());
 
-		return new RoomResponse(room.getId(), room.getRoomNumber(), room.getCapacity(), room.getPricePerBed(),
-				room.getAvailable(), room.getNotes(), amenityNames, room.getFurniture(),
+		return new RoomResponse(
+				room.getId(),
+				room.getRoomNumber(),
+				room.getCapacity(),
+				room.getPricePerBed(),
+				room.getAvailable(),
+				room.getNotes(),
+				amenityNames,
+				room.getFurniture(),
 				(room.getFloor() != null ? room.getFloor().getId() : null),
 				(room.getPg() != null ? room.getPg().getId() : null));
 	}
@@ -68,78 +117,326 @@ public class PgServiceImpl implements PgService {
 		List<RoomResponse> roomResponses = (floor.getRooms() == null) ? List.of()
 				: floor.getRooms().stream().map(this::toRoomResponse).collect(Collectors.toList());
 
-		return new FloorResponse(floor.getId(), floor.getFloorName(), totalRooms, floor.getCommonAreas(),
-				(floor.getPg() != null ? floor.getPg().getId() : null), roomResponses);
+		return new FloorResponse(
+				floor.getId(),
+				floor.getFloorName(),
+				totalRooms,
+				floor.getCommonAreas(),
+				(floor.getPg() != null ? floor.getPg().getId() : null),
+				roomResponses);
 	}
 
 	private ContactPersonResponse toContactResponse(ContactPerson c) {
-		return new ContactPersonResponse(c.getId(), c.getName(), c.getEmail(), c.getPhoneNumber(), c.getRole(),
-				c.getIsPrimary(), (c.getPg() != null ? c.getPg().getId() : null));
+		return new ContactPersonResponse(
+				c.getId(),
+				c.getName(),
+				c.getEmail(),
+				c.getPhoneNumber(),
+				c.getRole(),
+				c.getIsPrimary(),
+				(c.getPg() != null ? c.getPg().getId() : null));
 	}
 
-	// ------------------ PG → Response (OWNER FULL / STAFF LIMITED)
-	// ------------------
+	// ---------------------- PG → Response ----------------------
 
 	private PgResponse toPgResponse(PgEntity pg) {
 
 		Long ownerId = SecurityUtils.getLoggedInOwnerId();
-		Long staffId = SecurityUtils.getLoggedInStaffId();
-
 		boolean isOwner = ownerId != null;
-		boolean isStaff = staffId != null;
 
-		List<FloorResponse> floorResponses = (pg.getFloors() == null) ? List.of()
+		List<FloorResponse> floors = (pg.getFloors() == null) ? List.of()
 				: pg.getFloors().stream().map(this::toFloorResponse).collect(Collectors.toList());
 
-		List<AmenityResponse> amenityResponses = (pg.getAmenities() == null) ? List.of()
+		List<AmenityResponse> amenities = (pg.getAmenities() == null) ? List.of()
 				: pg.getAmenities().stream().map(this::toAmenityResponse).collect(Collectors.toList());
 
-		List<PropertyPhotoResponse> photoResponses = (pg.getPhotos() == null) ? List.of()
+		List<PropertyPhotoResponse> photos = (pg.getPhotos() == null) ? List.of()
 				: pg.getPhotos().stream().map(this::toPhotoResponse).collect(Collectors.toList());
 
-		List<ContactPersonResponse> contactResponses = (pg.getContacts() == null) ? List.of()
+		List<ContactPersonResponse> contacts = (pg.getContacts() == null) ? List.of()
 				: pg.getContacts().stream().map(this::toContactResponse).collect(Collectors.toList());
 
-		if (isOwner) {
+		Long oId = pg.getOwner() != null ? pg.getOwner().getId() : null;
+		String oName = pg.getOwner() != null ? pg.getOwner().getFullName() : null;
+		String oEmail = pg.getOwner() != null ? pg.getOwner().getEmail() : null;
 
-			List<StaffResponse> staffResponses = (pg.getStaff() == null) ? List.of()
-					: pg.getStaff().stream().map(staff -> {
-						StaffResponse s = new StaffResponse();
-						s.setId(staff.getId());
-						s.setFullName(staff.getFullName());
-						s.setEmail(staff.getEmail());
-						s.setPhone(staff.getPhone());
-						s.setDesignation(staff.getDesignation());
-						s.setJoinDate(staff.getJoinDate() != null ? staff.getJoinDate().toString() : null);
-						s.setShiftTiming(staff.getShiftTiming());
-						s.setActive(staff.getActive());
-						s.setPgId(pg.getId());
-						return s;
-					}).collect(Collectors.toList());
-
-			return new PgResponse(pg.getId(), pg.getName(), pg.getType(), pg.getPrice(), pg.getRules(),
-					pg.getAvailability(), pg.getAddress(), (pg.getOwner() != null ? pg.getOwner().getId() : null),
-					(pg.getOwner() != null ? pg.getOwner().getFullName() : null),
-					(pg.getOwner() != null ? pg.getOwner().getEmail() : null), floorResponses, amenityResponses,
-					photoResponses, contactResponses, staffResponses);
-		}
-
-		if (isStaff) {
-
-			return new PgResponse(pg.getId(), pg.getName(), pg.getType(), null, // staff cannot see price
-					pg.getRules(), pg.getAvailability(), pg.getAddress(), null, // hide ownerId
-					null, // hide ownerName
-					null, // hide ownerEmail
-					floorResponses, amenityResponses, photoResponses, contactResponses, List.of() // hide staff list
-			);
-		}
-
-		throw new RuntimeException("Invalid authentication state");
+		return new PgResponse(
+				pg.getId(),
+				pg.getName(),
+				pg.getType(),
+				pg.getPrice(),
+				pg.getRules(),
+				pg.getAvailability(),
+				pg.getAddress(),
+				oId,
+				oName,
+				oEmail,
+				floors,
+				amenities,
+				photos,
+				contacts);
 	}
 
-	// ------------------ CREATE HELPERS ------------------
+	// ---------------------- SECURITY HELPERS ----------------------
 
-	private ContactPerson makeContactFromRequest(ContactPersonRequest req, PgEntity pg) {
+	private Long getLoggedInOwnerId() {
+		Long id = SecurityUtils.getLoggedInOwnerId();
+		if (id == null)
+			throw new RuntimeException("Unauthorized: Owner not found in token");
+		return id;
+	}
+
+	private Set<Long> extractAllowedPgIds(HttpServletRequest request) {
+		String token = request.getHeader("Authorization");
+		if (token == null || !token.startsWith("Bearer "))
+			return Set.of();
+		token = token.substring(7);
+		return jwtService.extractAllowedPgIdsFromToken(token);
+	}
+
+	// ---------------------- GET ALL PGs ----------------------
+
+	@Override
+	public List<PgResponse> getAllPgs() {
+
+		Long ownerId = SecurityUtils.getLoggedInOwnerId();
+
+		if (ownerId != null) {
+			return pgRepository.findByOwnerId(ownerId)
+					.stream()
+					.map(this::toPgResponse)
+					.collect(Collectors.toList());
+		}
+
+		throw new RuntimeException("Unauthorized access");
+	}
+
+	// ---------------------- GET PG BY ID (OWNER or MANAGER restricted) ----------------------
+
+	@Override
+	public PgResponse getPgById(Long id, HttpServletRequest request) {
+
+	    Long ownerId = SecurityUtils.getLoggedInOwnerId();
+	    Long managerId = (Long) request.getAttribute("managerId");
+
+	    // ----------------------------------------------------
+	    // OWNER → Full access but only to own PGs
+	    // ----------------------------------------------------
+	    if (ownerId != null) {
+	        PgEntity pg = pgRepository.findByIdAndOwnerId(id, ownerId)
+	                .orElseThrow(() -> new RuntimeException("PG not found OR not owned by you"));
+	        return toPgResponse(pg);
+	    }
+
+	    // ----------------------------------------------------
+	    // MANAGER → Only PGs assigned in token
+	    // ----------------------------------------------------
+	    if (managerId != null) {
+
+	        // extract allowed PG IDs from JWT token
+	        Set<Long> allowed = jwtService.extractAllowedPgIdsFromRequest(request);
+
+	        if (allowed == null || !allowed.contains(id)) {
+	            throw new RuntimeException("Unauthorized: Manager cannot access this PG");
+	        }
+
+	        // Now fetch PG normally
+	        PgEntity pg = pgRepository.findById(id)
+	                .orElseThrow(() -> new RuntimeException("PG not found"));
+
+	        return toPgResponse(pg);
+	    }
+
+	    // neither owner nor manager
+	    throw new RuntimeException("Unauthorized PG access");
+	}
+
+
+	@Override
+	public List<PgResponse> getPgsByIds(Set<Long> ids) {
+		return pgRepository.findAllById(ids)
+				.stream()
+				.map(this::toPgResponse)
+				.collect(Collectors.toList());
+	}
+
+	// ---------------------- CREATE PG ----------------------
+
+	@Override
+	@Transactional
+	public PgResponse createPg(PgRequest request) {
+
+		Long ownerId = getLoggedInOwnerId();
+
+		Owner owner = ownerRepository.findById(ownerId)
+				.orElseThrow(() -> new RuntimeException("Owner not found"));
+
+		PgEntity pg = new PgEntity();
+
+		applyScalar(request, pg, owner);
+
+		PgEntity savedPg = pgRepository.save(pg);
+
+		if (request.getContacts() != null) {
+			List<ContactPerson> contacts = request.getContacts().stream()
+					.map(req -> makeContact(req, savedPg))
+					.map(contactRepo::save)
+					.collect(Collectors.toList());
+			savedPg.setContacts(contacts);
+		}
+
+		if (request.getAmenities() != null) {
+			List<Amenity> list = request.getAmenities().stream()
+					.map(req -> makeAmenity(req, savedPg))
+					.map(amenityRepo::save)
+					.collect(Collectors.toList());
+			savedPg.setAmenities(list);
+		}
+
+		if (request.getPhotos() != null) {
+			List<PropertyPhoto> list = request.getPhotos().stream()
+					.map(req -> makePhoto(req, savedPg))
+					.map(propertyPhotoRepository::save)
+					.collect(Collectors.toList());
+			savedPg.setPhotos(list);
+		}
+
+		if (request.getFloors() != null) {
+			List<Floor> savedFloors = new ArrayList<>();
+			for (FloorRequest fReq : request.getFloors()) {
+				Floor floor = new Floor();
+				floor.setPg(savedPg);
+				floor.setFloorName(fReq.getFloorName());
+				floor.setTotalRooms(fReq.getTotalRooms());
+				floor.setCommonAreas(fReq.getCommonAreas());
+
+				Floor savedFloor = floorRepository.save(floor);
+
+				if (fReq.getRooms() != null) {
+					List<RoomEntity> rooms = new ArrayList<>();
+
+					for (RoomRequest rReq : fReq.getRooms()) {
+						RoomEntity room = new RoomEntity();
+						room.setPg(savedPg);
+						room.setFloor(savedFloor);
+
+						room.setRoomNumber(rReq.getRoomNumber());
+						room.setCapacity(rReq.getCapacity());
+						room.setPricePerBed(rReq.getPricePerBed());
+						room.setAvailable(rReq.getAvailable());
+						room.setNotes(rReq.getNotes());
+						room.setFurniture(rReq.getFurniture());
+
+						if (rReq.getAmenities() != null) {
+							List<RoomAmenity> amList = rReq.getAmenities().stream().map(a -> {
+								RoomAmenity am = new RoomAmenity();
+								am.setAmenityName(a);
+								am.setRoom(room);
+								return am;
+							}).collect(Collectors.toList());
+							room.setAmenities(amList);
+						}
+
+						rooms.add(roomRepository.save(room));
+					}
+
+					savedFloor.setRooms(rooms);
+					floorRepository.save(savedFloor);
+				}
+
+				savedFloors.add(savedFloor);
+			}
+			savedPg.setFloors(savedFloors);
+		}
+
+		return toPgResponse(savedPg);
+	}
+
+	// ---------------------- UPDATE PG ----------------------
+
+	@Override
+	@Transactional
+	public PgResponse updatePg(Long id, PgRequest request) {
+
+		Long ownerId = getLoggedInOwnerId();
+
+		PgEntity existing = pgRepository.findByIdAndOwnerId(id, ownerId)
+				.orElseThrow(() -> new RuntimeException("PG not found OR not owned by you: " + id));
+
+		Owner owner = existing.getOwner();
+
+		applyScalar(request, existing, owner);
+
+		mergeContacts(existing, request.getContacts());
+		mergeAmenities(existing, request.getAmenities());
+		mergePhotos(existing, request.getPhotos());
+		mergeFloors(existing, request.getFloors());
+
+		return toPgResponse(pgRepository.save(existing));
+	}
+
+	// ---------------------- DELETE PG ----------------------
+
+	@Override
+	public void deletePg(Long id) {
+
+		Long ownerId = getLoggedInOwnerId();
+
+		PgEntity pg = pgRepository.findByIdAndOwnerId(id, ownerId)
+				.orElseThrow(() -> new RuntimeException("PG not found OR not owned by you: " + id));
+
+		pgRepository.delete(pg);
+	}
+
+
+
+	// ---------------------- INTERNAL HELPERS ----------------------
+
+	private void applyScalar(PgRequest req, PgEntity pg, Owner owner) {
+
+		if (owner != null)
+			pg.setOwner(owner);
+
+		if (req.getName() != null)
+			pg.setName(req.getName());
+
+		if (req.getType() != null)
+			pg.setType(req.getType());
+
+		if (req.getPrice() != null)
+			pg.setPrice(req.getPrice());
+
+		if (req.getRules() != null)
+			pg.setRules(req.getRules());
+
+		if (req.getAvailability() != null)
+			pg.setAvailability(req.getAvailability());
+
+		Address address = (pg.getAddress() != null) ? pg.getAddress() : new Address();
+		boolean touched = false;
+
+		if (req.getStreet() != null) {
+			address.setStreet(req.getStreet());
+			touched = true;
+		}
+		if (req.getCity() != null) {
+			address.setCity(req.getCity());
+			touched = true;
+		}
+		if (req.getState() != null) {
+			address.setState(req.getState());
+			touched = true;
+		}
+		if (req.getPincode() != null) {
+			address.setPincode(req.getPincode());
+			touched = true;
+		}
+
+		if (touched)
+			pg.setAddress(address);
+	}
+
+	private ContactPerson makeContact(ContactPersonRequest req, PgEntity pg) {
 		ContactPerson cp = new ContactPerson();
 		cp.setName(req.getName());
 		cp.setEmail(req.getEmail());
@@ -150,14 +447,14 @@ public class PgServiceImpl implements PgService {
 		return cp;
 	}
 
-	private Amenity makeAmenityFromRequest(AmenityRequest req, PgEntity pg) {
+	private Amenity makeAmenity(AmenityRequest req, PgEntity pg) {
 		Amenity a = new Amenity();
 		a.setName(req.getName());
 		a.setPg(pg);
 		return a;
 	}
 
-	private PropertyPhoto makePhotoFromRequest(PropertyPhotoRequest req, PgEntity pg) {
+	private PropertyPhoto makePhoto(PropertyPhotoRequest req, PgEntity pg) {
 		PropertyPhoto p = new PropertyPhoto();
 		p.setImageUrl(req.getImageUrl());
 		p.setIsMain(req.getIsMain());
@@ -165,65 +462,20 @@ public class PgServiceImpl implements PgService {
 		return p;
 	}
 
-	// --------------------------------------------------------
-	// Apply scalar fields only if present (used by create & update)
-	// --------------------------------------------------------
-	private void applyScalarFieldsIfPresent(PgRequest request, PgEntity pg, Owner owner) {
-		if (owner != null)
-			pg.setOwner(owner);
-
-		if (request.getName() != null)
-			pg.setName(request.getName());
-		if (request.getType() != null)
-			pg.setType(request.getType());
-		if (request.getPrice() != null)
-			pg.setPrice(request.getPrice());
-		if (request.getRules() != null)
-			pg.setRules(request.getRules());
-		if (request.getAvailability() != null)
-			pg.setAvailability(request.getAvailability());
-
-		Address address = (pg.getAddress() != null) ? pg.getAddress() : new Address();
-		boolean addressTouched = false;
-		if (request.getStreet() != null) {
-			address.setStreet(request.getStreet());
-			addressTouched = true;
-		}
-		if (request.getCity() != null) {
-			address.setCity(request.getCity());
-			addressTouched = true;
-		}
-		if (request.getState() != null) {
-			address.setState(request.getState());
-			addressTouched = true;
-		}
-		if (request.getPincode() != null) {
-			address.setPincode(request.getPincode());
-			addressTouched = true;
-		}
-		if (addressTouched)
-			pg.setAddress(address);
-	}
-
-	// --------------------------------------------------------
-	// Merge contacts: update existing, add new, delete flagged
-	// --------------------------------------------------------
-	private void mergeContacts(PgEntity pg, List<ContactPersonRequest> reqContacts) {
-		if (reqContacts == null)
+	private void mergeContacts(PgEntity pg, List<ContactPersonRequest> req) {
+		if (req == null)
 			return;
+
 		if (pg.getContacts() == null)
 			pg.setContacts(new ArrayList<>());
 
-		for (ContactPersonRequest cReq : reqContacts) {
+		for (ContactPersonRequest cReq : req) {
 			if (cReq.getId() != null) {
 				ContactPerson existing = contactRepo.findById(cReq.getId())
-						.orElseThrow(() -> new RuntimeException("Contact not found: " + cReq.getId()));
-
-				if (existing.getPg() == null || !existing.getPg().getId().equals(pg.getId()))
-					throw new RuntimeException("Contact does not belong to this PG: " + cReq.getId());
+						.orElseThrow(() -> new RuntimeException("Contact not found"));
 
 				if (Boolean.TRUE.equals(cReq.getDelete())) {
-					pg.getContacts().removeIf(cp -> cp.getId().equals(existing.getId()));
+					pg.getContacts().removeIf(x -> x.getId().equals(existing.getId()));
 					contactRepo.delete(existing);
 					continue;
 				}
@@ -242,61 +494,60 @@ public class PgServiceImpl implements PgService {
 				contactRepo.save(existing);
 
 			} else {
-				ContactPerson cp = makeContactFromRequest(cReq, pg);
-				ContactPerson saved = contactRepo.save(cp);
+				ContactPerson newContact = makeContact(cReq, pg);
+				ContactPerson saved = contactRepo.save(newContact);
 				pg.getContacts().add(saved);
 			}
 		}
 	}
 
-	// --------------------------------------------------------
-	// Merge amenities: update/add/delete
-	// --------------------------------------------------------
-	private void mergeAmenities(PgEntity pg, List<AmenityRequest> reqAmenities) {
-		if (reqAmenities == null)
+	private void mergeAmenities(PgEntity pg, List<AmenityRequest> req) {
+
+		if (req == null)
 			return;
+
 		if (pg.getAmenities() == null)
 			pg.setAmenities(new ArrayList<>());
 
-		for (AmenityRequest aReq : reqAmenities) {
+		for (AmenityRequest aReq : req) {
 			if (aReq.getId() != null) {
-				Amenity existing = amenityRepo.findByIdAndPgOwnerId(aReq.getId(), pg.getOwner().getId())
-						.orElseThrow(() -> new RuntimeException("Amenity not found or not owned: " + aReq.getId()));
+
+				Amenity existing = amenityRepo.findById(aReq.getId())
+						.orElseThrow(() -> new RuntimeException("Amenity not found"));
 
 				if (Boolean.TRUE.equals(aReq.getDelete())) {
-					pg.getAmenities().removeIf(am -> am.getId().equals(existing.getId()));
+					pg.getAmenities().removeIf(x -> x.getId().equals(existing.getId()));
 					amenityRepo.delete(existing);
 					continue;
 				}
 
 				if (aReq.getName() != null)
 					existing.setName(aReq.getName());
+
 				amenityRepo.save(existing);
+
 			} else {
-				Amenity a = makeAmenityFromRequest(aReq, pg);
+				Amenity a = makeAmenity(aReq, pg);
 				Amenity saved = amenityRepo.save(a);
 				pg.getAmenities().add(saved);
 			}
 		}
 	}
 
-	// --------------------------------------------------------
-	// Merge photos: update/add/delete
-	// --------------------------------------------------------
-	private void mergePhotos(PgEntity pg, List<PropertyPhotoRequest> reqPhotos) {
-		if (reqPhotos == null)
+	private void mergePhotos(PgEntity pg, List<PropertyPhotoRequest> req) {
+		if (req == null)
 			return;
+
 		if (pg.getPhotos() == null)
 			pg.setPhotos(new ArrayList<>());
 
-		for (PropertyPhotoRequest pReq : reqPhotos) {
+		for (PropertyPhotoRequest pReq : req) {
 			if (pReq.getId() != null) {
-				PropertyPhoto existing = propertyPhotoRepository
-						.findByIdAndPgOwnerId(pReq.getId(), pg.getOwner().getId())
-						.orElseThrow(() -> new RuntimeException("Photo not found or not owned: " + pReq.getId()));
+				PropertyPhoto existing = propertyPhotoRepository.findById(pReq.getId())
+						.orElseThrow(() -> new RuntimeException("Photo not found"));
 
 				if (Boolean.TRUE.equals(pReq.getDelete())) {
-					pg.getPhotos().removeIf(ph -> ph.getId().equals(existing.getId()));
+					pg.getPhotos().removeIf(x -> x.getId().equals(existing.getId()));
 					propertyPhotoRepository.delete(existing);
 					continue;
 				}
@@ -305,161 +556,38 @@ public class PgServiceImpl implements PgService {
 					existing.setImageUrl(pReq.getImageUrl());
 				if (pReq.getIsMain() != null)
 					existing.setIsMain(pReq.getIsMain());
+
 				propertyPhotoRepository.save(existing);
+
 			} else {
-				PropertyPhoto p = makePhotoFromRequest(pReq, pg);
+				PropertyPhoto p = makePhoto(pReq, pg);
 				PropertyPhoto saved = propertyPhotoRepository.save(p);
 				pg.getPhotos().add(saved);
 			}
 		}
 	}
 
-	// ------------------------
-	// Merge rooms inside a floor
-	// ------------------------
-	private void mergeRooms(PgEntity pg, Floor floor, List<RoomRequest> reqRooms) {
-		if (reqRooms == null)
-			return;
-		if (floor.getRooms() == null)
-			floor.setRooms(new ArrayList<>());
-
-		for (RoomRequest rReq : reqRooms) {
-
-			// --------------------------------------------------------
-			// UPDATE EXISTING ROOM
-			// --------------------------------------------------------
-			if (rReq.getId() != null) {
-
-				RoomEntity existing = roomRepository.findById(rReq.getId())
-						.orElseThrow(() -> new RuntimeException("Room not found: " + rReq.getId()));
-
-				if (!existing.getPg().getId().equals(pg.getId()))
-					throw new RuntimeException("Room does not belong to this PG");
-
-				// DELETE ROOM
-				if (Boolean.TRUE.equals(rReq.getDelete())) {
-					floor.getRooms().removeIf(r -> r.getId().equals(existing.getId()));
-					roomRepository.delete(existing);
-					continue;
-				}
-
-				// UPDATE SIMPLE FIELDS
-				if (rReq.getRoomNumber() != null)
-					existing.setRoomNumber(rReq.getRoomNumber());
-				if (rReq.getCapacity() != null)
-					existing.setCapacity(rReq.getCapacity());
-				if (rReq.getPricePerBed() != null)
-					existing.setPricePerBed(rReq.getPricePerBed());
-				if (rReq.getAvailable() != null)
-					existing.setAvailable(rReq.getAvailable());
-				if (rReq.getNotes() != null)
-					existing.setNotes(rReq.getNotes());
-
-				// UPDATE FURNITURE (SAFE: clear + addAll)
-				if (rReq.getFurniture() != null) {
-					if (existing.getFurniture() == null) {
-						existing.setFurniture(new ArrayList<>());
-					} else {
-						existing.getFurniture().clear();
-					}
-					existing.getFurniture().addAll(rReq.getFurniture());
-				}
-
-				// UPDATE AMENITIES (SAFE: clear + repopulate)
-				if (rReq.getAmenities() != null) {
-					if (existing.getAmenities() == null) {
-						existing.setAmenities(new ArrayList<>());
-					} else {
-						existing.getAmenities().clear();
-					}
-
-					for (String a : rReq.getAmenities()) {
-						RoomAmenity am = new RoomAmenity();
-						am.setAmenityName(a);
-						am.setRoom(existing);
-						existing.getAmenities().add(am);
-					}
-				}
-
-				// MOVE ROOM TO NEW FLOOR
-				if (rReq.getFloorId() != null && !rReq.getFloorId().equals(floor.getId())) {
-					Floor newFloor = floorRepository.findById(rReq.getFloorId())
-							.orElseThrow(() -> new RuntimeException("Target floor not found"));
-
-					if (!newFloor.getPg().getId().equals(pg.getId()))
-						throw new RuntimeException("Cannot move room to another PG");
-
-					existing.setFloor(newFloor);
-				}
-
-				roomRepository.save(existing);
-			}
-
-			// --------------------------------------------------------
-			// CREATE NEW ROOM
-			// --------------------------------------------------------
-			else {
-				RoomEntity room = new RoomEntity();
-				room.setPg(pg);
-				room.setFloor(floor);
-
-				if (rReq.getRoomNumber() != null)
-					room.setRoomNumber(rReq.getRoomNumber());
-				if (rReq.getCapacity() != null)
-					room.setCapacity(rReq.getCapacity());
-				if (rReq.getPricePerBed() != null)
-					room.setPricePerBed(rReq.getPricePerBed());
-				if (rReq.getAvailable() != null)
-					room.setAvailable(rReq.getAvailable());
-				if (rReq.getNotes() != null)
-					room.setNotes(rReq.getNotes());
-
-				// FURNITURE
-				if (rReq.getFurniture() != null) {
-					room.setFurniture(new ArrayList<>(rReq.getFurniture()));
-				}
-
-				// AMENITIES
-				if (rReq.getAmenities() != null) {
-					List<RoomAmenity> ams = new ArrayList<>();
-					for (String a : rReq.getAmenities()) {
-						RoomAmenity am = new RoomAmenity();
-						am.setAmenityName(a);
-						am.setRoom(room);
-						ams.add(am);
-					}
-					room.setAmenities(ams);
-				}
-
-				RoomEntity saved = roomRepository.save(room);
-				floor.getRooms().add(saved);
-			}
-		}
-	}
-
-	// ------------------------
-	// Merge floors (top-level)
-	// ------------------------
 	private void mergeFloors(PgEntity pg, List<FloorRequest> reqFloors) {
+
 		if (reqFloors == null)
 			return;
+
 		if (pg.getFloors() == null)
 			pg.setFloors(new ArrayList<>());
 
 		for (FloorRequest fReq : reqFloors) {
-			if (fReq.getId() != null) {
-				Floor existing = floorRepository.findById(fReq.getId())
-						.orElseThrow(() -> new RuntimeException("Floor not found: " + fReq.getId()));
 
-				if (existing.getPg() == null || !existing.getPg().getId().equals(pg.getId()))
-					throw new RuntimeException("Floor does not belong to this PG: " + fReq.getId());
+			if (fReq.getId() != null) {
+
+				Floor existing = floorRepository.findById(fReq.getId())
+						.orElseThrow(() -> new RuntimeException("Floor not found"));
 
 				if (Boolean.TRUE.equals(fReq.getDelete())) {
-					// delete nested rooms first
-					if (existing.getRooms() != null) {
+
+					if (existing.getRooms() != null)
 						existing.getRooms().forEach(r -> roomRepository.delete(r));
-					}
-					pg.getFloors().removeIf(fl -> fl.getId().equals(existing.getId()));
+
+					pg.getFloors().removeIf(x -> x.getId().equals(existing.getId()));
 					floorRepository.delete(existing);
 					continue;
 				}
@@ -475,36 +603,31 @@ public class PgServiceImpl implements PgService {
 				floorRepository.save(existing);
 
 			} else {
+
 				Floor floor = new Floor();
 				floor.setPg(pg);
-				if (fReq.getFloorName() != null)
-					floor.setFloorName(fReq.getFloorName());
-				if (fReq.getTotalRooms() != null)
-					floor.setTotalRooms(fReq.getTotalRooms());
-				if (fReq.getCommonAreas() != null)
-					floor.setCommonAreas(fReq.getCommonAreas());
+				floor.setFloorName(fReq.getFloorName());
+				floor.setTotalRooms(fReq.getTotalRooms());
+				floor.setCommonAreas(fReq.getCommonAreas());
 
 				Floor savedFloor = floorRepository.save(floor);
 
-				if (fReq.getRooms() != null && !fReq.getRooms().isEmpty()) {
+				if (fReq.getRooms() != null) {
+
 					List<RoomEntity> rooms = new ArrayList<>();
+
 					for (RoomRequest rReq : fReq.getRooms()) {
+
 						RoomEntity room = new RoomEntity();
 						room.setPg(pg);
 						room.setFloor(savedFloor);
 
-						if (rReq.getRoomNumber() != null)
-							room.setRoomNumber(rReq.getRoomNumber());
-						if (rReq.getCapacity() != null)
-							room.setCapacity(rReq.getCapacity());
-						if (rReq.getPricePerBed() != null)
-							room.setPricePerBed(rReq.getPricePerBed());
-						if (rReq.getAvailable() != null)
-							room.setAvailable(rReq.getAvailable());
-						if (rReq.getNotes() != null)
-							room.setNotes(rReq.getNotes());
-						if (rReq.getFurniture() != null)
-							room.setFurniture(rReq.getFurniture());
+						room.setRoomNumber(rReq.getRoomNumber());
+						room.setCapacity(rReq.getCapacity());
+						room.setPricePerBed(rReq.getPricePerBed());
+						room.setAvailable(rReq.getAvailable());
+						room.setNotes(rReq.getNotes());
+						room.setFurniture(rReq.getFurniture());
 
 						if (rReq.getAmenities() != null) {
 							List<RoomAmenity> amList = rReq.getAmenities().stream().map(a -> {
@@ -516,9 +639,9 @@ public class PgServiceImpl implements PgService {
 							room.setAmenities(amList);
 						}
 
-						RoomEntity savedRoom = roomRepository.save(room);
-						rooms.add(savedRoom);
+						rooms.add(roomRepository.save(room));
 					}
+
 					savedFloor.setRooms(rooms);
 					floorRepository.save(savedFloor);
 				}
@@ -528,197 +651,105 @@ public class PgServiceImpl implements PgService {
 		}
 	}
 
-	// ------------------ SECURITY HELPERS ------------------
+	private void mergeRooms(PgEntity pg, Floor floor, List<RoomRequest> reqRooms) {
 
-	private Long getLoggedInOwnerId() {
-		Long id = SecurityUtils.getLoggedInOwnerId();
-		if (id == null)
-			throw new RuntimeException("Unauthorized: Owner not found in token");
-		return id;
-	}
+		if (reqRooms == null)
+			return;
 
-	// ------------------ GET ALL PGs ------------------
+		if (floor.getRooms() == null)
+			floor.setRooms(new ArrayList<>());
 
-	@Override
-	public List<PgResponse> getAllPgs() {
+		for (RoomRequest rReq : reqRooms) {
 
-		Long ownerId = SecurityUtils.getLoggedInOwnerId();
-		Long staffPgId = SecurityUtils.getStaffPgId();
+			if (rReq.getId() != null) {
 
-		if (ownerId != null) {
-			return pgRepository.findByOwnerId(ownerId).stream().map(this::toPgResponse).collect(Collectors.toList());
-		}
+				RoomEntity existing = roomRepository.findById(rReq.getId())
+						.orElseThrow(() -> new RuntimeException("Room not found"));
 
-		if (staffPgId != null) {
-			PgEntity pg = pgRepository.findById(staffPgId).orElseThrow(() -> new RuntimeException("PG not found"));
-			return List.of(toPgResponse(pg));
-		}
-
-		throw new RuntimeException("Unauthorized access");
-	}
-
-	// ------------------ GET PG BY ID ------------------
-
-	@Override
-	public PgResponse getPgById(Long id) {
-		Long ownerId = SecurityUtils.getLoggedInOwnerId();
-		Long staffPgId = SecurityUtils.getStaffPgId();
-
-		if (ownerId != null) {
-			PgEntity pg = pgRepository.findByIdAndOwnerId(id, ownerId)
-					.orElseThrow(() -> new RuntimeException("PG not found OR not owned by you"));
-			return toPgResponse(pg);
-		}
-
-		if (staffPgId != null && staffPgId.equals(id)) {
-			PgEntity pg = pgRepository.findById(id).orElseThrow(() -> new RuntimeException("PG not found"));
-			return toPgResponse(pg);
-		}
-
-		throw new RuntimeException("Unauthorized PG access");
-	}
-
-	// ------------------ CREATE PG ------------------
-
-	@Override
-	@Transactional
-	public PgResponse createPg(PgRequest request) {
-
-		Long ownerId = getLoggedInOwnerId();
-
-		Owner owner = ownerRepository.findById(ownerId).orElseThrow(() -> new RuntimeException("Owner not found"));
-
-		PgEntity pg = new PgEntity();
-
-		// apply scalar fields
-		applyScalarFieldsIfPresent(request, pg, owner);
-
-		// Save once — but do NOT overwrite pg variable used in lambdas
-		PgEntity savedPg = pgRepository.save(pg);
-
-		// contacts
-		if (request.getContacts() != null && !request.getContacts().isEmpty()) {
-			List<ContactPerson> contacts = request.getContacts().stream()
-					.map(req -> makeContactFromRequest(req, savedPg)).map(contactRepo::save)
-					.collect(Collectors.toList());
-			savedPg.setContacts(contacts);
-		}
-
-		// amenities
-		if (request.getAmenities() != null && !request.getAmenities().isEmpty()) {
-			List<Amenity> list = request.getAmenities().stream().map(req -> makeAmenityFromRequest(req, savedPg))
-					.map(amenityRepo::save).collect(Collectors.toList());
-			savedPg.setAmenities(list);
-		}
-
-		// photos
-		if (request.getPhotos() != null && !request.getPhotos().isEmpty()) {
-			List<PropertyPhoto> list = request.getPhotos().stream().map(req -> makePhotoFromRequest(req, savedPg))
-					.map(propertyPhotoRepository::save).collect(Collectors.toList());
-			savedPg.setPhotos(list);
-		}
-
-		// floors + nested rooms
-		if (request.getFloors() != null && !request.getFloors().isEmpty()) {
-			List<Floor> savedFloors = new ArrayList<>();
-			for (FloorRequest fReq : request.getFloors()) {
-				Floor floor = new Floor();
-				floor.setPg(savedPg);
-				if (fReq.getFloorName() != null)
-					floor.setFloorName(fReq.getFloorName());
-				if (fReq.getTotalRooms() != null)
-					floor.setTotalRooms(fReq.getTotalRooms());
-				if (fReq.getCommonAreas() != null)
-					floor.setCommonAreas(fReq.getCommonAreas());
-
-				Floor savedFloor = floorRepository.save(floor);
-
-				if (fReq.getRooms() != null && !fReq.getRooms().isEmpty()) {
-					List<RoomEntity> rooms = new ArrayList<>();
-					for (RoomRequest rReq : fReq.getRooms()) {
-						RoomEntity room = new RoomEntity();
-						room.setPg(savedPg);
-						room.setFloor(savedFloor);
-
-						if (rReq.getRoomNumber() != null)
-							room.setRoomNumber(rReq.getRoomNumber());
-						if (rReq.getCapacity() != null)
-							room.setCapacity(rReq.getCapacity());
-						if (rReq.getPricePerBed() != null)
-							room.setPricePerBed(rReq.getPricePerBed());
-						if (rReq.getAvailable() != null)
-							room.setAvailable(rReq.getAvailable());
-						if (rReq.getNotes() != null)
-							room.setNotes(rReq.getNotes());
-						if (rReq.getFurniture() != null)
-							room.setFurniture(rReq.getFurniture());
-
-						if (rReq.getAmenities() != null) {
-							List<RoomAmenity> amList = rReq.getAmenities().stream().map(a -> {
-								RoomAmenity am = new RoomAmenity();
-								am.setAmenityName(a);
-								am.setRoom(room);
-								return am;
-							}).collect(Collectors.toList());
-							room.setAmenities(amList);
-						}
-
-						RoomEntity savedRoom = roomRepository.save(room);
-						rooms.add(savedRoom);
-					}
-					savedFloor.setRooms(rooms);
-					floorRepository.save(savedFloor);
+				if (Boolean.TRUE.equals(rReq.getDelete())) {
+					floor.getRooms().removeIf(x -> x.getId().equals(existing.getId()));
+					roomRepository.delete(existing);
+					continue;
 				}
 
-				savedFloors.add(savedFloor);
+				if (rReq.getRoomNumber() != null)
+					existing.setRoomNumber(rReq.getRoomNumber());
+				if (rReq.getCapacity() != null)
+					existing.setCapacity(rReq.getCapacity());
+				if (rReq.getPricePerBed() != null)
+					existing.setPricePerBed(rReq.getPricePerBed());
+				if (rReq.getAvailable() != null)
+					existing.setAvailable(rReq.getAvailable());
+				if (rReq.getNotes() != null)
+					existing.setNotes(rReq.getNotes());
+
+				if (rReq.getFurniture() != null) {
+					existing.getFurniture().clear();
+					existing.getFurniture().addAll(rReq.getFurniture());
+				}
+
+				if (rReq.getAmenities() != null) {
+					existing.getAmenities().clear();
+					for (String a : rReq.getAmenities()) {
+						RoomAmenity am = new RoomAmenity();
+						am.setAmenityName(a);
+						am.setRoom(existing);
+						existing.getAmenities().add(am);
+					}
+				}
+
+				if (rReq.getFloorId() != null && !rReq.getFloorId().equals(floor.getId())) {
+					Floor newFloor = floorRepository.findById(rReq.getFloorId())
+							.orElseThrow(() -> new RuntimeException("Target floor not found"));
+
+					if (!newFloor.getPg().getId().equals(pg.getId()))
+						throw new RuntimeException("Cannot move room to another PG");
+
+					existing.setFloor(newFloor);
+				}
+
+				roomRepository.save(existing);
+
+			} else {
+
+				RoomEntity room = new RoomEntity();
+				room.setPg(pg);
+				room.setFloor(floor);
+
+				room.setRoomNumber(rReq.getRoomNumber());
+				room.setCapacity(rReq.getCapacity());
+				room.setPricePerBed(rReq.getPricePerBed());
+				room.setAvailable(rReq.getAvailable());
+				room.setNotes(rReq.getNotes());
+				room.setFurniture(rReq.getFurniture());
+
+				if (rReq.getAmenities() != null) {
+					List<RoomAmenity> ams = new ArrayList<>();
+					for (String a : rReq.getAmenities()) {
+						RoomAmenity am = new RoomAmenity();
+						am.setAmenityName(a);
+						am.setRoom(room);
+						ams.add(am);
+					}
+					room.setAmenities(ams);
+				}
+
+				RoomEntity savedRoom = roomRepository.save(room);
+				floor.getRooms().add(savedRoom);
 			}
-			savedPg.setFloors(savedFloors);
 		}
-
-		// final save with children attached
-		PgEntity finalSaved = pgRepository.save(savedPg);
-		return toPgResponse(finalSaved);
 	}
-
-	// ------------------ UPDATE PG ------------------
-
 	@Override
-	@Transactional
-	public PgResponse updatePg(Long id, PgRequest request) {
+	public PgResponse getPgById(Long id) {
+	    // call the role-aware version with the current request
+	    HttpServletRequest request =
+	            ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes())
+	                    .getRequest();
 
-		Long ownerId = getLoggedInOwnerId();
-
-		PgEntity existing = pgRepository.findByIdAndOwnerId(id, ownerId)
-				.orElseThrow(() -> new RuntimeException("PG not found OR not owned by you: " + id));
-
-		Owner owner = existing.getOwner();
-
-		// 1) Scalars & address (partial)
-		applyScalarFieldsIfPresent(request, existing, owner);
-
-		// 2) Merge nested lists
-		mergeContacts(existing, request.getContacts());
-		mergeAmenities(existing, request.getAmenities());
-		mergePhotos(existing, request.getPhotos());
-
-		// 3) Merge floors + rooms
-		mergeFloors(existing, request.getFloors());
-
-		PgEntity updated = pgRepository.save(existing);
-
-		return toPgResponse(updated);
+	    return getPgById(id, request);
 	}
 
-	// ------------------ DELETE PG ------------------
+	
 
-	@Override
-	public void deletePg(Long id) {
-		Long ownerId = getLoggedInOwnerId();
-
-		PgEntity pg = pgRepository.findByIdAndOwnerId(id, ownerId)
-				.orElseThrow(() -> new RuntimeException("PG not found OR not owned by you: " + id));
-
-		pgRepository.delete(pg);
-	}
 
 }
