@@ -1,86 +1,47 @@
 package com.parent.staff.dto;
+import java.time.LocalDate;
 
 public class StaffResponse {
-
-	private Long id;
-	private Long pgId;
-	private String fullName;
-	private String email;
-	private String phone;
-	private String designation;
-	private String joinDate;
-	private String shiftTiming;
-	private Boolean active;
-
+    public Long id;
+    public String fullName;
+    public String phone;
+    public String role;
+    public Long pgId;
+    public LocalDate joinDate;
 	public Long getId() {
 		return id;
 	}
-
 	public void setId(Long id) {
 		this.id = id;
 	}
-
-	public Long getPgId() {
-		return pgId;
-	}
-
-	public void setPgId(Long pgId) {
-		this.pgId = pgId;
-	}
-
 	public String getFullName() {
 		return fullName;
 	}
-
 	public void setFullName(String fullName) {
 		this.fullName = fullName;
 	}
-
-	public String getEmail() {
-		return email;
-	}
-
-	public void setEmail(String email) {
-		this.email = email;
-	}
-
 	public String getPhone() {
 		return phone;
 	}
-
 	public void setPhone(String phone) {
 		this.phone = phone;
 	}
-
-	public String getDesignation() {
-		return designation;
+	public String getRole() {
+		return role;
 	}
-
-	public void setDesignation(String designation) {
-		this.designation = designation;
+	public void setRole(String role) {
+		this.role = role;
 	}
-
-	public String getJoinDate() {
+	public Long getPgId() {
+		return pgId;
+	}
+	public void setPgId(Long pgId) {
+		this.pgId = pgId;
+	}
+	public LocalDate getJoinDate() {
 		return joinDate;
 	}
-
-	public void setJoinDate(String joinDate) {
+	public void setJoinDate(LocalDate joinDate) {
 		this.joinDate = joinDate;
-	}
-
-	public String getShiftTiming() {
-		return shiftTiming;
-	}
-
-	public void setShiftTiming(String shiftTiming) {
-		this.shiftTiming = shiftTiming;
-	}
-
-	public Boolean getActive() {
-		return active;
-	}
-
-	public void setActive(Boolean active) {
-		this.active = active;
 	}
 }

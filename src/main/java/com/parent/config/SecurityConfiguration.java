@@ -28,86 +28,106 @@ public class SecurityConfiguration {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
-        http
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .csrf(csrf -> csrf.disable())
-            .authorizeHttpRequests(auth -> auth
+        http.cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .csrf(csrf -> csrf.disable())
+                .authorizeHttpRequests(auth -> auth
 
-                // --------------------------------------------------------
-                // PUBLIC (NO TOKEN REQUIRED)
-                // --------------------------------------------------------
-            	.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                .requestMatchers("/api/auth/**").permitAll()          // OWNER auth
-                .requestMatchers("/api/staff/auth/**").permitAll()    // STAFF login
+                        // --------------------------------------------------------
+                        // PUBLIC (NO TOKEN REQUIRED)
+                        // --------------------------------------------------------
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/api/auth/**").permitAll()           // owner login
+                        .requestMatchers("/api/admin/auth/**").permitAll()     // admin login
+                        .requestMatchers("/api/manager/auth/**").permitAll()   // manager login
 
-                .requestMatchers("/api/tenant/**").permitAll()
+                        // --------------------------------------------------------
+                        // PG ACCESS
+                        // --------------------------------------------------------
 
-                // --------------------------------------------------------
-                // STAFF DASHBOARD ROUTES (ROLE_STAFF)
-                // --------------------------------------------------------
-                .requestMatchers("/api/staff/dashboard/**").hasRole("STAFF")
-                .requestMatchers("/api/staff/tasks/**").hasRole("STAFF")
-                .requestMatchers("/api/staff/complaints/**").hasRole("STAFF")
-                .requestMatchers("/api/staff/requests/**").hasRole("STAFF")
-                .requestMatchers("/api/staff/profile/**").hasRole("STAFF")
-                .requestMatchers("/api/staff/tenants/**").hasRole("STAFF")
+                        // GET allowed for OWNER + ADMIN + MANAGER
+                        .requestMatchers(HttpMethod.GET, "/api/pgs/**")
+                            .hasAnyRole("OWNER", "ADMIN", "MANAGER")
 
-                // OWNER: staff management + see staff per PG
-                .requestMatchers("/api/staff/manage/**").hasRole("OWNER")
-                .requestMatchers("/api/staff/pg/**").hasRole("OWNER")
+                        // CREATE/UPDATE/DELETE PG allowed ONLY for OWNER
+                        .requestMatchers(HttpMethod.POST, "/api/pgs/**").hasRole("OWNER")
+                        .requestMatchers(HttpMethod.PUT, "/api/pgs/**").hasRole("OWNER")
+                        .requestMatchers(HttpMethod.PATCH, "/api/pgs/**").hasRole("OWNER")
+                        .requestMatchers(HttpMethod.DELETE, "/api/pgs/**").hasRole("OWNER")
 
-                // --------------------------------------------------------
-                // PG ACCESS (OWNER + STAFF)
-                // --------------------------------------------------------
-                .requestMatchers("/api/pgs/**").hasAnyRole("OWNER", "STAFF")
 
-                // --------------------------------------------------------
-                // ROOMS (OWNER writes, both read)
-                // --------------------------------------------------------
-                .requestMatchers(HttpMethod.POST,   "/api/rooms/**").hasRole("OWNER")
-                .requestMatchers(HttpMethod.PUT,    "/api/rooms/**").hasRole("OWNER")
-                .requestMatchers(HttpMethod.PATCH,  "/api/rooms/**").hasRole("OWNER")
-                .requestMatchers(HttpMethod.DELETE, "/api/rooms/**").hasRole("OWNER")
-                .requestMatchers(HttpMethod.GET,    "/api/rooms/**").hasAnyRole("OWNER", "STAFF")
+                        // --------------------------------------------------------
+                        // ROOMS
+                        // --------------------------------------------------------
+                        .requestMatchers(HttpMethod.GET, "/api/rooms/**")
+                            .hasAnyRole("OWNER", "MANAGER")
 
-                // --------------------------------------------------------
-                // FLOORS (OWNER writes, both read)
-                // --------------------------------------------------------
-                .requestMatchers(HttpMethod.GET,    "/api/floors/**").hasAnyRole("OWNER", "STAFF")
-                .requestMatchers(HttpMethod.POST,   "/api/floors/**").hasRole("OWNER")
-                .requestMatchers(HttpMethod.PUT,    "/api/floors/**").hasRole("OWNER")
-                .requestMatchers(HttpMethod.PATCH,  "/api/floors/**").hasRole("OWNER")
-                .requestMatchers(HttpMethod.DELETE, "/api/floors/**").hasRole("OWNER")
+                        .requestMatchers(HttpMethod.POST, "/api/rooms/**").hasRole("OWNER")
+                        .requestMatchers(HttpMethod.PUT, "/api/rooms/**").hasRole("OWNER")
+                        .requestMatchers(HttpMethod.PATCH, "/api/rooms/**").hasRole("OWNER")
+                        .requestMatchers(HttpMethod.DELETE, "/api/rooms/**").hasRole("OWNER")
 
-                // --------------------------------------------------------
-                // OWNER-ONLY ROUTES
-                // --------------------------------------------------------
-                .requestMatchers("/api/owners/**").hasRole("OWNER")
-                .requestMatchers("/api/amenities/**").hasRole("OWNER")
-                .requestMatchers("/api/property-photos/**").hasRole("OWNER")
 
-                // --------------------------------------------------------
-                // ALL OTHER ROUTES
-                // --------------------------------------------------------
-                .anyRequest().authenticated()
-            )
-            .addFilterBefore(
-                jwtAuthenticationFilter(),
-                org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class
-            );
+                        // --------------------------------------------------------
+                        // FLOORS
+                        // --------------------------------------------------------
+                        .requestMatchers(HttpMethod.GET, "/api/floors/**")
+                            .hasAnyRole("OWNER", "MANAGER")
+
+                        .requestMatchers(HttpMethod.POST, "/api/floors/**").hasRole("OWNER")
+                        .requestMatchers(HttpMethod.PUT, "/api/floors/**").hasRole("OWNER")
+                        .requestMatchers(HttpMethod.PATCH, "/api/floors/**").hasRole("OWNER")
+                        .requestMatchers(HttpMethod.DELETE, "/api/floors/**").hasRole("OWNER")
+
+
+                        // --------------------------------------------------------
+                        // MANAGER ROUTES
+                        // --------------------------------------------------------
+                        .requestMatchers("/api/manager/**")
+                            .hasAnyRole("MANAGER", "OWNER")
+
+
+                        // --------------------------------------------------------
+                        // STAFF ROUTES
+                        // --------------------------------------------------------
+                        .requestMatchers("/api/staff/**")
+                            .hasAnyRole("OWNER", "MANAGER")
+
+
+                        // --------------------------------------------------------
+                        // OWNER ROUTES
+                        // --------------------------------------------------------
+                        .requestMatchers("/api/owners/**").hasRole("OWNER")
+                        .requestMatchers("/api/amenities/**").hasRole("OWNER")
+                        .requestMatchers("/api/property-photos/**").hasRole("OWNER")
+                        .requestMatchers("/api/owner/admins/**").hasRole("OWNER")
+
+
+                        // --------------------------------------------------------
+                        // ADMIN ROUTES
+                        // --------------------------------------------------------
+                        .requestMatchers("/api/admins/me")
+                            .hasAnyRole("ADMIN", "OWNER")
+
+
+                        // --------------------------------------------------------
+                        // EVERYTHING ELSE MUST BE AUTHENTICATED
+                        // --------------------------------------------------------
+                        .anyRequest().authenticated()
+                )
+                .addFilterBefore(jwtAuthenticationFilter(),
+                        org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
     // --------------------------------------------------------
-    // CORS CONFIG (localhost + Render)
+    // CORS CONFIG
     // --------------------------------------------------------
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
 
         CorsConfiguration config = new CorsConfiguration();
 
-        // Frontends that are allowed to call your backend
         config.setAllowedOrigins(List.of(
                 "http://localhost:3000",
                 "http://localhost:5173",

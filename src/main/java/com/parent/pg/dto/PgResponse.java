@@ -1,10 +1,9 @@
 package com.parent.pg.dto;
 
-import java.util.List;
+import java.util.List;	
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.parent.pg.model.Address;
-import com.parent.staff.dto.StaffResponse;
 
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 public class PgResponse {
@@ -24,7 +23,6 @@ public class PgResponse {
 	private List<AmenityResponse> amenities;
 	private List<PropertyPhotoResponse> photos;
 	private List<ContactPersonResponse> contacts;
-	private List<StaffResponse> staff;
 	
 
 
@@ -41,7 +39,7 @@ public class PgResponse {
 
 	public PgResponse(Long id, String name, String type, Double price, String rules, Boolean availability,
 			Address address, Long ownerId, String ownerName, String ownerEmail, List<FloorResponse> floors,
-			List<AmenityResponse> amenities, List<PropertyPhotoResponse> photos,List<ContactPersonResponse> contactResponses,List<StaffResponse> staff) {
+			List<AmenityResponse> amenities, List<PropertyPhotoResponse> photos,List<ContactPersonResponse> contactResponses) {
 		this.id = id;
 		this.name = name;
 		this.type = type;
@@ -56,7 +54,13 @@ public class PgResponse {
 		this.amenities = amenities;
 		this.photos = photos;
 		this.contacts= contactResponses;
-		this.staff=staff;
+	}
+
+	public PgResponse(Long id2, String name2, String type2, Double price2, String rules2, Boolean availability2,
+			Address address2, Long long1, Object object, Object object2, List<FloorResponse> floorResponses,
+			List<AmenityResponse> amenityResponses, List<PropertyPhotoResponse> photoResponses,
+			List<ContactPersonResponse> contactResponses, List<Object> of) {
+		// TODO Auto-generated constructor stub
 	}
 
 	public Long getId() {
@@ -163,14 +167,6 @@ public class PgResponse {
 		this.photos = photos;
 	}
 
-	public List<StaffResponse> getStaff() {
-		return staff;
-	}
-
-	public void setStaff(List<StaffResponse> staff) {
-		this.staff = staff;
-	}
-	
 
 	// Getters and Setters omitted for brevity (keep as you have them)
 }

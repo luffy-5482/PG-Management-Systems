@@ -3,6 +3,7 @@ package com.parent.config;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -30,11 +31,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String path = request.getServletPath();
 
         return path.startsWith("/api/auth/")
-                || path.startsWith("/api/staff/auth/")
+                || path.startsWith("/api/admin/auth/")
+                || path.startsWith("/api/manager/auth/")
                 || path.startsWith("/api/public/")
-                || request.getMethod().equalsIgnoreCase("OPTIONS");  // needed for CORS preflight
+                || request.getMethod().equalsIgnoreCase("OPTIONS");
     }
-
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -44,7 +45,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         final String header = request.getHeader("Authorization");
 
-        // No token → continue
         if (!StringUtils.hasText(header) || !header.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
@@ -59,23 +59,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String username = jwtService.extractUsername(token);
         String role = jwtService.extractRole(token);
+
         Long ownerId = jwtService.extractOwnerId(token);
-        Long staffId = jwtService.extractStaffId(token);
-        Long pgId = jwtService.extractStaffPgId(token);
+        Long adminId = jwtService.extractAdminId(token);
+        Long managerId = jwtService.extractManagerId(token);
+
+        // NEW: extract PG-level access for manager
+        Set<Long> allowedPgIds = jwtService.extractAllowedPgIdsFromToken(token);
+        Long pgId = jwtService.extractPgId(token);
 
         List<SimpleGrantedAuthority> authorities = new ArrayList<>();
 
-        // ROLE NORMALIZATION
         if (StringUtils.hasText(role)) {
             role = role.trim();
-
-            if (role.toUpperCase().startsWith("ROLE_")) {
-                String core = role.substring(5).toUpperCase();
-                role = "ROLE_" + core;
-            } else {
+            if (!role.toUpperCase().startsWith("ROLE_")) {
                 role = "ROLE_" + role.toUpperCase();
             }
-
             authorities.add(new SimpleGrantedAuthority(role));
         }
 
@@ -89,9 +88,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         SecurityContextHolder.getContext().setAuthentication(auth);
 
+        // Set IDs for downstream services
         if (ownerId != null) request.setAttribute("ownerId", ownerId);
-        if (staffId != null) request.setAttribute("staffId", staffId);
-        if (pgId != null) request.setAttribute("pgId", pgId);
+        if (adminId != null) request.setAttribute("adminId", adminId);
+        if (managerId != null) request.setAttribute("managerId", managerId);
+
+        // NEW → set PG scope attributes
+        if (allowedPgIds != null && !allowedPgIds.isEmpty())
+            request.setAttribute("allowedPgIds", allowedPgIds);
+
+        if (pgId != null)
+            request.setAttribute("pgId", pgId);
 
         filterChain.doFilter(request, response);
     }

@@ -15,5 +15,7 @@ public interface PgRepository extends JpaRepository<PgEntity, Long> {
     // 🔹 Your existing filters
     List<PgEntity> findByAddress_City(String city);
     List<PgEntity> findByTypeAndAvailability(String type, Boolean availability);
+    List<PgEntity> findAllById(Iterable<Long> ids);
+
     
 }
