@@ -12,9 +12,7 @@ public interface PgService {
 
     // OWNER: list all PGs
     List<PgResponse> getAllPgs();
-
-    // OLD method (owner-only version)
-    PgResponse getPgById(Long id);
+    PgResponse getPgById(Long id); // used by owner service
 
     // NEW: Role aware (Owner OR Manager)
     PgResponse getPgById(Long id, HttpServletRequest request);

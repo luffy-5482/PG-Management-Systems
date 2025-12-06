@@ -32,7 +32,7 @@ public class JwtService {
     // TOKEN GENERATION
     // --------------------------------------------------------
     public String generateToken(String subject, Map<String, Object> extraClaims) {
-        return Jwts.builder()
+        return Jwts.builder()  
                 .setClaims(extraClaims)
                 .setSubject(subject)
                 .setIssuer(ISSUER)

@@ -90,6 +90,7 @@ public class Manager {
 	}
 
 	public void setAllowedPgIds(Set<Long> allowedPgIds) {
+		this.allowedPgIds = allowedPgIds;
 	}
 
 	public String getPhone() {

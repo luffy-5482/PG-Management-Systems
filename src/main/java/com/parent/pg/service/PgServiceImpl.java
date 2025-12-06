@@ -741,15 +741,18 @@ public class PgServiceImpl implements PgService {
 	}
 	@Override
 	public PgResponse getPgById(Long id) {
-	    // call the role-aware version with the current request
-	    HttpServletRequest request =
-	            ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes())
-	                    .getRequest();
+	    // OWNER ONLY method (used internally by OwnerService)
+	    Long ownerId = SecurityUtils.getLoggedInOwnerId();
 
-	    return getPgById(id, request);
+	    if (ownerId == null) {
+	        throw new RuntimeException("Unauthorized: Owner not found in token");
+	    }
+
+	    PgEntity pg = pgRepository.findByIdAndOwnerId(id, ownerId)
+	            .orElseThrow(() -> new RuntimeException("PG not found OR not owned by you"));
+
+	    return toPgResponse(pg);
 	}
-
-	
 
 
 }
