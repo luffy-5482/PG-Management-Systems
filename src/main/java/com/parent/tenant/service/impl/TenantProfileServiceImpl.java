@@ -29,7 +29,6 @@ public class TenantProfileServiceImpl implements TenantProfileService {
         Tenant tenant = tenantRepository.findById(tenantId)
                 .orElseThrow(() -> new RuntimeException("Tenant not found with id: " + tenantId));
 
-        // apply incoming changes
         applyUpdate(tenant, update);
 
         Tenant saved = tenantRepository.save(tenant);
@@ -45,13 +44,13 @@ public class TenantProfileServiceImpl implements TenantProfileService {
         dto.setEmail(tenant.getEmail());
         dto.setContact(tenant.getContact());
 
-        // extra basic fields (if present on Tenant)
+        // extra basic fields
         dto.setDateOfBirth(tenant.getDateOfBirth());
         dto.setGender(tenant.getGender());
         dto.setOccupation(tenant.getOccupation());
 
-        // for now, no real room wiring – placeholder
-        dto.setRoomDetails(buildRoomDetailsForTenant(tenant));
+        // For now: no room mapping, just send null
+        dto.setRoomDetails((TenantRoomDetailsDto) null);
 
         return dto;
     }
@@ -77,14 +76,6 @@ public class TenantProfileServiceImpl implements TenantProfileService {
             tenant.setOccupation(update.getOccupation());
         }
 
-        // ⛔ Do NOT set roomDetails here — that will come from booking/room logic later.
-    }
-
-    /**
-     * Placeholder for future logic:
-     * later you can fetch Booking + Room + PG and fill TenantRoomDetailsDto.
-     */
-    private TenantRoomDetailsDto buildRoomDetailsForTenant(Tenant tenant) {
-        return null; // frontend can treat null as "no room assigned"
+        // ⚠️ Not touching room / payment info from here.
     }
 }

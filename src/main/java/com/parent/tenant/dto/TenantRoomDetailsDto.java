@@ -11,8 +11,11 @@ public class TenantRoomDetailsDto {
     private String roomNumber;
     private String floorName;      // optional
     private String sharingType;    // e.g., "2 Sharing"
-    private Double rent;
-    private Double dueAmount;
+    
+    // 🔁 Changed from Double → Integer
+    private Integer rent;
+    private Integer dueAmount;
+
     private LocalDate moveInDate;
     private LocalDate leaseEndDate;
     private String status;         // e.g., "ACTIVE", "PENDING"
@@ -75,19 +78,19 @@ public class TenantRoomDetailsDto {
         this.sharingType = sharingType;
     }
 
-    public Double getRent() {
+    public Integer getRent() {
         return rent;
     }
 
-    public void setRent(Double rent) {
+    public void setRent(Integer rent) {
         this.rent = rent;
     }
 
-    public Double getDueAmount() {
+    public Integer getDueAmount() {
         return dueAmount;
     }
 
-    public void setDueAmount(Double dueAmount) {
+    public void setDueAmount(Integer dueAmount) {
         this.dueAmount = dueAmount;
     }
 

@@ -14,6 +14,10 @@ public class TenantProfileDto {
     private String gender;
     private String occupation;
 
+    private Boolean subscriptionBlocked;
+    private LocalDate nextDueDate;
+    private Double monthlySubscriptionAmount;
+    
     // 🔥 NEW PART ADDED
     private TenantRoomDetailsDto roomDetails;
 
@@ -81,5 +85,26 @@ public class TenantProfileDto {
 
     public void setRoomDetails(TenantRoomDetailsDto roomDetails) {
         this.roomDetails = roomDetails;
+    }
+    
+    public Boolean getSubscriptionBlocked() {
+        return subscriptionBlocked;
+    }
+    public void setSubscriptionBlocked(Boolean subscriptionBlocked) {
+        this.subscriptionBlocked = subscriptionBlocked;
+    }
+
+    public LocalDate getNextDueDate() {
+        return nextDueDate;
+    }
+    public void setNextDueDate(LocalDate nextDueDate) {
+        this.nextDueDate = nextDueDate;
+    }
+
+    public Double getMonthlySubscriptionAmount() {
+        return monthlySubscriptionAmount;
+    }
+    public void setMonthlySubscriptionAmount(Double monthlySubscriptionAmount) {
+        this.monthlySubscriptionAmount = monthlySubscriptionAmount;
     }
 }
