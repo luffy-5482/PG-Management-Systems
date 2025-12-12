@@ -28,7 +28,7 @@ public class BookingServiceImpl implements BookingService {
     @Autowired private PaymentRepository paymentRepository;
     @Autowired private RazorpayOrderService razorpayOrderService;
 
-    @Value("${razorpay.key_secret}")
+    @Value("${razorpay.secret}")
     private String razorpaySecret;
 
     @Override
