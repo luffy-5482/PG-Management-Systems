@@ -47,7 +47,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         System.out.println("NORMALIZED PATH = [" + path + "]");
 
-        // Allow all auth endpoints after cleaning
+        // Allow auth endpoints
         return path.startsWith("/api/auth")
                 || path.startsWith("/api/admin/auth")
                 || path.startsWith("/api/manager/auth")
@@ -88,10 +88,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         List<SimpleGrantedAuthority> authorities = new ArrayList<>();
 
         if (StringUtils.hasText(role)) {
-            role = role.trim();
+
+            // Normalize
+            role = role.trim().toUpperCase();
+
+            // Set request attribute for controller checks
+            request.setAttribute("role", role);
+
+            // Make sure Spring Security understands it
             if (!role.startsWith("ROLE_")) {
-                role = "ROLE_" + role.toUpperCase();
+                role = "ROLE_" + role;
             }
+
             authorities.add(new SimpleGrantedAuthority(role));
         }
 

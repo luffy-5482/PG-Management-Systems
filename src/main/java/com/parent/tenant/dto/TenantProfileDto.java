@@ -16,7 +16,7 @@ public class TenantProfileDto {
 
     private Boolean subscriptionBlocked;
     private LocalDate nextDueDate;
-    private Double monthlySubscriptionAmount;
+    private Integer monthlySubscriptionAmount;
     
     // 🔥 NEW PART ADDED
     private TenantRoomDetailsDto roomDetails;
@@ -101,10 +101,10 @@ public class TenantProfileDto {
         this.nextDueDate = nextDueDate;
     }
 
-    public Double getMonthlySubscriptionAmount() {
+    public Integer getMonthlySubscriptionAmount() {
         return monthlySubscriptionAmount;
     }
-    public void setMonthlySubscriptionAmount(Double monthlySubscriptionAmount) {
-        this.monthlySubscriptionAmount = monthlySubscriptionAmount;
+    public void setMonthlySubscriptionAmount(Integer monthlyInt) {
+        this.monthlySubscriptionAmount = monthlyInt;
     }
 }
