@@ -1,12 +1,22 @@
 package com.parent.admin.controller;
 
+import java.util.HashSet;
+import java.util.Set;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.parent.admin.dto.UpdatePermissionsRequest;
 import com.parent.admin.model.Admin;
 import com.parent.admin.repository.AdminRepository;
-import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 
-import java.util.Set;
+import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
 @RequestMapping("/api/owner/admin")
@@ -82,4 +92,27 @@ public class OwnerAdminPermissionsController {
 
         return ResponseEntity.ok(admin.getPermissions());
     }
+    @PutMapping("/{adminId}/permissions")
+    public ResponseEntity<Set<String>> updatePermissions(
+            @PathVariable Long adminId,
+            @RequestBody UpdatePermissionsRequest req,
+            HttpServletRequest request) {
+
+        if (!isOwner(request))
+            return ResponseEntity.status(403).build();
+
+        if (req.permissions == null)
+            return ResponseEntity.badRequest().body(null);
+
+        Admin admin = adminRepo.findById(adminId)
+                .orElseThrow(() -> new RuntimeException("Admin not found"));
+
+        // 💥 Replace the entire permission set
+        admin.setPermissions(new HashSet<>(req.permissions));
+
+        adminRepo.save(admin);
+
+        return ResponseEntity.ok(admin.getPermissions());
+    }
+
 }

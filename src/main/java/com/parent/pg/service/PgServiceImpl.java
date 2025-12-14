@@ -8,11 +8,11 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 
 import com.parent.config.JwtService;
 import com.parent.config.SecurityUtils;
+import com.parent.manager.model.Manager;
+import com.parent.manager.repository.ManagerRepository;
 import com.parent.owner.model.Owner;
 import com.parent.owner.repository.OwnerRepository;
 import com.parent.pg.dto.AmenityRequest;
@@ -67,6 +67,9 @@ public class PgServiceImpl implements PgService {
 
 	@Autowired
 	private RoomRepository roomRepository;
+	@Autowired
+	private ManagerRepository ManagerRepository;
+
 
 	@Autowired
 	private JwtService jwtService; // ⭐ REQUIRED FOR MANAGER PG RESTRICTION
@@ -136,11 +139,11 @@ public class PgServiceImpl implements PgService {
 				c.getIsPrimary(),
 				(c.getPg() != null ? c.getPg().getId() : null));
 	}
-
+ 
 	// ---------------------- PG → Response ----------------------
 
 	private PgResponse toPgResponse(PgEntity pg) {
-
+ 
 		Long ownerId = SecurityUtils.getLoggedInOwnerId();
 		boolean isOwner = ownerId != null;
 
@@ -207,7 +210,7 @@ public class PgServiceImpl implements PgService {
 					.map(this::toPgResponse)
 					.collect(Collectors.toList());
 		}
-
+ 
 		throw new RuntimeException("Unauthorized access");
 	}
 
@@ -233,12 +236,13 @@ public class PgServiceImpl implements PgService {
 	    // ----------------------------------------------------
 	    if (managerId != null) {
 
-	        // extract allowed PG IDs from JWT token
-	        Set<Long> allowed = jwtService.extractAllowedPgIdsFromRequest(request);
+	    	Manager m = ManagerRepository.findById(managerId)
+	    	        .orElseThrow(() -> new RuntimeException("Manager not found"));
 
-	        if (allowed == null || !allowed.contains(id)) {
-	            throw new RuntimeException("Unauthorized: Manager cannot access this PG");
-	        }
+	    	if (!m.getAllowedPgIds().contains(id)) {
+	    	    throw new RuntimeException("Unauthorized: Manager cannot access this PG");
+	    	}
+
 
 	        // Now fetch PG normally
 	        PgEntity pg = pgRepository.findById(id)

@@ -6,6 +6,4 @@ public class UpdateAdminRequest {
     public String name;
     public Set<String> permissions;
     public Set<Long> allowedPgIds;
-    
-    
 }

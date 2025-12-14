@@ -24,7 +24,7 @@ public class StaffController {
         this.jwtService = jwtService;
     }
 
-    @PostMapping("/create")
+    @PostMapping("/create") 
     public ResponseEntity<StaffResponse> create(@RequestBody StaffRequest req, HttpServletRequest request) {
 
         Long ownerId = jwtService.extractOwnerIdFromRequest(request);

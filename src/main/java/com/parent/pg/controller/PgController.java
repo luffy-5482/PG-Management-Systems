@@ -1,11 +1,21 @@
 package com.parent.pg.controller;
 
 import java.util.List;
-import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
+import com.parent.config.JwtService;
+import com.parent.manager.model.Manager;
+import com.parent.manager.repository.ManagerRepository;
 import com.parent.pg.dto.PgRequest;
 import com.parent.pg.dto.PgResponse;
 import com.parent.pg.service.PgService;
@@ -21,7 +31,9 @@ public class PgController {
     private PgService pgService;
 
     @Autowired
-    private com.parent.config.JwtService jwtService;
+    private JwtService jwtService;
+    @Autowired
+    private ManagerRepository ManagerRepository;
 
     // ---------------------------------------------------------
     // OWNER → all PGs
@@ -33,17 +45,21 @@ public class PgController {
         Long ownerId = jwtService.extractOwnerIdFromRequest(request);
         Long managerId = jwtService.extractManagerIdFromRequest(request);
 
+        // OWNER → return all PGs
         if (ownerId != null) {
             return pgService.getAllPgs();
         }
 
+        // MANAGER → return only allowed PGs FROM DATABASE (NOT TOKEN)
         if (managerId != null) {
-            Set<Long> allowed = jwtService.extractAllowedPgIdsFromRequest(request);
-            return pgService.getPgsByIds(allowed);
+            Manager m = ManagerRepository.findById(managerId)
+                    .orElseThrow(() -> new RuntimeException("Manager not found"));
+            return pgService.getPgsByIds(m.getAllowedPgIds());
         }
 
         return List.of();
     }
+
 
 
     // ---------------------------------------------------------

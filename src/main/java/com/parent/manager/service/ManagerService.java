@@ -1,6 +1,6 @@
 package com.parent.manager.service;
 
-import java.util.HashSet;
+import java.util.HashSet;	
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -34,8 +34,6 @@ public class ManagerService {
         m.setEmail(req.email);
         m.setPassword(passwordEncoder.encode(req.password));
         m.setPhone(req.phone);
-
-        // 🔥 REQUIRED or Hibernate throws NOT NULL error
         m.setOwnerId(ownerId);
 
         // Allowed PGs (null-safe)
@@ -53,14 +51,21 @@ public class ManagerService {
         Manager m = repo.findById(id).orElseThrow(() ->
                 new EntityNotFoundException("Manager not found")
         );
-
+ 
         if (req.fullName != null) m.setName(req.fullName);
         if (req.phone != null) m.setPhone(req.phone);
         if (req.allowedPgIds != null) m.setAllowedPgIds(req.allowedPgIds);
+        if (req.email != null) m.setEmail(req.email);
+
+        // 🔥 ADD THIS TO UPDATE PASSWORD
+        if (req.password != null && !req.password.isBlank()) {
+            m.setPassword(passwordEncoder.encode(req.password));
+        }
 
         Manager saved = repo.save(m);
         return toResponse(saved);
     }
+
 
     // OWNER DELETES MANAGER
     public void deleteManager(Long id, Long ownerId) {

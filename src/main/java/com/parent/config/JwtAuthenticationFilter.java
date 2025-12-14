@@ -5,20 +5,18 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
-
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-
-import org.springframework.util.StringUtils;
-import org.springframework.web.filter.OncePerRequestFilter;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import org.springframework.util.StringUtils;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
@@ -32,25 +30,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(HttpServletRequest request) {
 
         String raw = request.getRequestURI();
-        System.out.println("RAW URI = [" + raw + "]");
+        String path = URLDecoder.decode(raw, StandardCharsets.UTF_8).trim();
 
-        // Decode %20, %0A, unicode, everything
-        String path = URLDecoder.decode(raw, StandardCharsets.UTF_8);
-
-        // Remove hidden/invisible/trailing characters
-        path = path
-                .replaceAll("[\\u200B-\\u200D\\uFEFF]", "") // zero-width chars
-                .replaceAll("[\\n\\r\\t]+", "")             // CR, LF, TAB
-                .replaceAll("\\s+$", "")                    // whitespace at end
-                .replaceAll("/+$", "")                      // trailing slash
-                .trim();
-
-        System.out.println("NORMALIZED PATH = [" + path + "]");
-
-        // Allow all auth endpoints after cleaning
         return path.startsWith("/api/auth")
                 || path.startsWith("/api/admin/auth")
                 || path.startsWith("/api/manager/auth")
+                || path.startsWith("/api/tenant/auth")
                 || path.startsWith("/api/public")
                 || request.getMethod().equalsIgnoreCase("OPTIONS");
     }
@@ -59,40 +44,44 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(
             HttpServletRequest request,
             HttpServletResponse response,
-            FilterChain filterChain)
+            FilterChain chain)
             throws ServletException, IOException {
 
         String header = request.getHeader("Authorization");
 
         if (!StringUtils.hasText(header) || !header.startsWith("Bearer ")) {
-            filterChain.doFilter(request, response);
+            chain.doFilter(request, response);
             return;
         }
 
         String token = header.substring(7);
 
         if (!jwtService.isTokenValid(token)) {
-            filterChain.doFilter(request, response);
+            chain.doFilter(request, response);
             return;
         }
+
+        Long tenantId = jwtService.extractTenantId(token);
+        Long ownerId = jwtService.extractOwnerId(token);
+        Long adminId = jwtService.extractAdminId(token);
+        Long managerId = jwtService.extractManagerId(token);
 
         String username = jwtService.extractUsername(token);
         String role = jwtService.extractRole(token);
 
-        Long ownerId = jwtService.extractOwnerId(token);
-        Long adminId = jwtService.extractAdminId(token);
-        Long managerId = jwtService.extractManagerId(token);
-        Set<Long> allowedPgIds = jwtService.extractAllowedPgIdsFromToken(token);
-        Long pgId = jwtService.extractPgId(token);
+        // store attributes for service layer
+        if (tenantId != null) request.setAttribute("tenantId", tenantId);
+        if (ownerId != null) request.setAttribute("ownerId", ownerId);
+        if (adminId != null) request.setAttribute("adminId", adminId);
+        if (managerId != null) request.setAttribute("managerId", managerId);
 
+        request.setAttribute("permissions", jwtService.extractPermissions(token));
+        request.setAttribute("allowedPgIds", jwtService.extractAllowedPgIdsFromToken(token));
+
+        // authorities
         List<SimpleGrantedAuthority> authorities = new ArrayList<>();
-
-        if (StringUtils.hasText(role)) {
-            role = role.trim();
-            if (!role.startsWith("ROLE_")) {
-                role = "ROLE_" + role.toUpperCase();
-            }
-            authorities.add(new SimpleGrantedAuthority(role));
+        if (role != null) {
+            authorities.add(new SimpleGrantedAuthority("ROLE_" + role));
         }
 
         UsernamePasswordAuthenticationToken auth =
@@ -101,16 +90,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         SecurityContextHolder.getContext().setAuthentication(auth);
 
-        if (ownerId != null) request.setAttribute("ownerId", ownerId);
-        if (adminId != null) request.setAttribute("adminId", adminId);
-        if (managerId != null) request.setAttribute("managerId", managerId);
-
-        if (allowedPgIds != null && !allowedPgIds.isEmpty())
-            request.setAttribute("allowedPgIds", allowedPgIds);
-
-        if (pgId != null)
-            request.setAttribute("pgId", pgId);
-
-        filterChain.doFilter(request, response);
+        chain.doFilter(request, response);
     }
 }

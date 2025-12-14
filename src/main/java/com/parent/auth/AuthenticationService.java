@@ -57,7 +57,7 @@ public class AuthenticationService {
         owner.setPassword(passwordEncoder.encode(request.getPassword()));
 
         Owner saved = ownerRepository.save(owner);
-
+ 
         Map<String, Object> claims = new HashMap<>();
         claims.put("ownerId", saved.getId());
         claims.put("role", "OWNER");   // ⭐ FIXED → do NOT prepend ROLE_

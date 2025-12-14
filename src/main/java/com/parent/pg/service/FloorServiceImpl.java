@@ -1,6 +1,6 @@
 package com.parent.pg.service;
 
-import java.util.List;
+import java.util.List;	
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,7 +16,6 @@ import com.parent.pg.model.RoomAmenity;
 import com.parent.pg.model.RoomEntity;
 import com.parent.pg.repository.FloorRepository;
 import com.parent.pg.repository.PgRepository;
-import com.parent.pg.repository.RoomRepository;
 
 @Service
 public class FloorServiceImpl implements FloorService {
@@ -26,9 +25,6 @@ public class FloorServiceImpl implements FloorService {
 
     @Autowired
     private PgRepository pgRepository;
-
-    @Autowired
-    private RoomRepository roomRepository;
 
     // ---------------------------
     // 🔐 Owner + Staff helpers
@@ -109,7 +105,7 @@ public class FloorServiceImpl implements FloorService {
 
     // ---------------------------
     // GET FLOORS BY PG — Owner + Staff
-    // ---------------------------
+    // --------------------------- 
     @Override
     public List<FloorResponse> getFloorsByPgId(Long pgId) {
 
