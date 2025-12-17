@@ -15,12 +15,12 @@ public class AuthenticationController {
     private final AuthenticationService authService;
 
     public AuthenticationController(AuthenticationService authService) {
-        this.authService = authService;
+        this.authService = authService; 
     }
 
     @PostMapping("/register")
     public ResponseEntity<AuthenticationResponse> register(@RequestBody OwnerRequest request) {
-        return ResponseEntity.ok(authService.register(request));
+        return ResponseEntity.ok(authService.register(request)); 
     }
 
     @PostMapping("/login")

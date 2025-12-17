@@ -32,6 +32,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String raw = request.getRequestURI();
         String path = URLDecoder.decode(raw, StandardCharsets.UTF_8).trim();
 
+        // SKIP HEALTH CHECK
+        if (path.equals("/api/public/health")) {
+            return true;
+        }
+
+        // SKIP ALL ERROR PATHS
+        if (path.startsWith("/error")) {
+            return true;
+        }
+
         return path.startsWith("/api/auth")
                 || path.startsWith("/api/admin/auth")
                 || path.startsWith("/api/manager/auth")
@@ -69,7 +79,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String username = jwtService.extractUsername(token);
         String role = jwtService.extractRole(token);
 
-        // store attributes for service layer
         if (tenantId != null) request.setAttribute("tenantId", tenantId);
         if (ownerId != null) request.setAttribute("ownerId", ownerId);
         if (adminId != null) request.setAttribute("adminId", adminId);
@@ -78,7 +87,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         request.setAttribute("permissions", jwtService.extractPermissions(token));
         request.setAttribute("allowedPgIds", jwtService.extractAllowedPgIdsFromToken(token));
 
-        // authorities
         List<SimpleGrantedAuthority> authorities = new ArrayList<>();
         if (role != null) {
             authorities.add(new SimpleGrantedAuthority("ROLE_" + role));

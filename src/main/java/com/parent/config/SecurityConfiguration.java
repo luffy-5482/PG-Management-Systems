@@ -1,5 +1,7 @@
 package com.parent.config;
 
+import java.util.List;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -8,8 +10,6 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
-import java.util.List;
 
 @Configuration
 public class SecurityConfiguration {
@@ -29,83 +29,67 @@ public class SecurityConfiguration {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .csrf(csrf -> csrf.disable())
-            .authorizeHttpRequests(auth -> auth
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .csrf(csrf -> csrf.disable())
+                .authorizeHttpRequests(auth -> auth
 
-                // ALWAYS ALLOW OPTIONS
-                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-
-                // PUBLIC AUTH (login/signup)
-                .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/admin/auth/**").permitAll()
-                .requestMatchers("/api/manager/auth/**").permitAll()
-                .requestMatchers("/api/tenant/auth/**").permitAll()
-                .requestMatchers("/api/public/**").permitAll()
-                .requestMatchers(
-                        "/swagger-ui.html",
-                        "/swagger-ui/**",
-                        "/v3/api-docs/**"
-                ).permitAll()
+                		.requestMatchers("/error").permitAll()
+                		.requestMatchers("/error/**").permitAll()
+                		.requestMatchers("/api/public/health").permitAll()
+                		.requestMatchers("/").permitAll()
 
 
-                // TENANT SELF SERVICE ROUTES
-                .requestMatchers("/api/tenant/self/**")
-                    .hasRole("TENANT")
 
-                // TENANT MANAGEMENT (OWNER, MANAGER, ADMIN)
-                .requestMatchers("/api/tenant", "/api/tenant/**")
-                    .hasAnyRole("OWNER", "MANAGER", "ADMIN")
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                // PG ROUTES
-                .requestMatchers(HttpMethod.GET, "/api/pgs/**")
-                    .hasAnyRole("OWNER", "ADMIN", "MANAGER")
-                .requestMatchers(HttpMethod.POST, "/api/pgs/**").hasRole("OWNER")
-                .requestMatchers(HttpMethod.PUT, "/api/pgs/**").hasRole("OWNER")
-                .requestMatchers(HttpMethod.PATCH, "/api/pgs/**").hasRole("OWNER")
-                .requestMatchers(HttpMethod.DELETE, "/api/pgs/**").hasRole("OWNER")
+                        .requestMatchers(
+                                "/api/auth/**",
+                                "/api/admin/auth/**",
+                                "/api/manager/auth/**",
+                                "/api/tenant/auth/**",
+                                "/api/public/**",
+                                "/swagger-ui.html",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**"
+                        ).permitAll()
 
-                // ROOMS
-                .requestMatchers(HttpMethod.GET, "/api/rooms/**")
-                    .hasAnyRole("OWNER", "MANAGER")
-                .requestMatchers(HttpMethod.POST, "/api/rooms/**").hasRole("OWNER")
-                .requestMatchers(HttpMethod.PUT, "/api/rooms/**").hasRole("OWNER")
-                .requestMatchers(HttpMethod.PATCH, "/api/rooms/**").hasRole("OWNER")
-                .requestMatchers(HttpMethod.DELETE, "/api/rooms/**").hasRole("OWNER")
+                        .requestMatchers("/api/tenant/self/**").hasRole("TENANT")
+                        .requestMatchers("/api/tenant/**").hasAnyRole("OWNER","MANAGER","ADMIN")
 
-                // FLOORS
-                .requestMatchers(HttpMethod.GET, "/api/floors/**")
-                    .hasAnyRole("OWNER", "MANAGER")
-                .requestMatchers(HttpMethod.POST, "/api/floors/**").hasRole("OWNER")
-                .requestMatchers(HttpMethod.PUT, "/api/floors/**").hasRole("OWNER")
-                .requestMatchers(HttpMethod.PATCH, "/api/floors/**").hasRole("OWNER")
-                .requestMatchers(HttpMethod.DELETE, "/api/floors/**").hasRole("OWNER")
+                        .requestMatchers(HttpMethod.GET, "/api/pgs/**").hasAnyRole("OWNER","ADMIN","MANAGER")
+                        .requestMatchers(HttpMethod.POST, "/api/pgs/**").hasRole("OWNER")
+                        .requestMatchers(HttpMethod.PUT, "/api/pgs/**").hasRole("OWNER")
+                        .requestMatchers(HttpMethod.PATCH, "/api/pgs/**").hasRole("OWNER")
+                        .requestMatchers(HttpMethod.DELETE, "/api/pgs/**").hasRole("OWNER")
 
-                // MANAGER MODULE
-                .requestMatchers("/api/manager/**")
-                    .hasAnyRole("MANAGER", "OWNER")
+                        .requestMatchers(HttpMethod.GET, "/api/rooms/**").hasAnyRole("OWNER","MANAGER")
+                        .requestMatchers(HttpMethod.POST, "/api/rooms/**").hasRole("OWNER")
+                        .requestMatchers(HttpMethod.PUT, "/api/rooms/**").hasRole("OWNER")
+                        .requestMatchers(HttpMethod.PATCH, "/api/rooms/**").hasRole("OWNER")
+                        .requestMatchers(HttpMethod.DELETE, "/api/rooms/**").hasRole("OWNER")
 
-                // STAFF
-                .requestMatchers("/api/staff/**")
-                    .hasAnyRole("OWNER", "MANAGER")
+                        .requestMatchers(HttpMethod.GET, "/api/floors/**").hasAnyRole("OWNER","MANAGER")
+                        .requestMatchers(HttpMethod.POST, "/api/floors/**").hasRole("OWNER")
+                        .requestMatchers(HttpMethod.PUT, "/api/floors/**").hasRole("OWNER")
+                        .requestMatchers(HttpMethod.PATCH, "/api/floors/**").hasRole("OWNER")
+                        .requestMatchers(HttpMethod.DELETE, "/api/floors/**").hasRole("OWNER")
 
-                // OWNER MODULE
-                .requestMatchers("/api/owners/**").hasRole("OWNER")
-                .requestMatchers("/api/amenities/**").hasRole("OWNER")
-                .requestMatchers("/api/property-photos/**").hasRole("OWNER")
-                .requestMatchers("/api/owner/admins/**").hasRole("OWNER")
+                        .requestMatchers("/api/manager/**").hasAnyRole("MANAGER","OWNER")
+                        .requestMatchers("/api/staff/**").hasAnyRole("OWNER","MANAGER")
 
-                // ADMIN
-                .requestMatchers("/api/admins/me")
-                    .hasAnyRole("ADMIN", "OWNER")
+                        .requestMatchers("/api/owners/**").hasRole("OWNER")
+                        .requestMatchers("/api/amenities/**").hasRole("OWNER")
+                        .requestMatchers("/api/property-photos/**").hasRole("OWNER")
+                        .requestMatchers("/api/owner/admins/**").hasRole("OWNER")
 
-                // EVERYTHING ELSE
-                .anyRequest().authenticated()
-            )
-            .addFilterBefore(
-                jwtAuthenticationFilter(),
-                org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class
-            );
+                        .requestMatchers("/api/admins/me").hasAnyRole("ADMIN","OWNER")
+
+                        .anyRequest().authenticated()
+                )
+                .addFilterBefore(
+                        jwtAuthenticationFilter(),
+                        org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class
+                );
 
         return http.build();
     }
