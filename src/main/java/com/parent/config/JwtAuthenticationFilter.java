@@ -1,15 +1,12 @@
 package com.parent.config;
 
-import java.io.IOException;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
+import java.io.IOException;	
 import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -25,29 +22,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     public JwtAuthenticationFilter(JwtService jwtService) {
         this.jwtService = jwtService;
     }
-
+    
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
 
-        String raw = request.getRequestURI();
-        String path = URLDecoder.decode(raw, StandardCharsets.UTF_8).trim();
+        String path = request.getRequestURI();
 
-        // SKIP HEALTH CHECK
-        if (path.equals("/api/public/health")) {
-            return true;
-        }
-
-        // SKIP ALL ERROR PATHS
-        if (path.startsWith("/error")) {
-            return true;
-        }
-
-        return path.startsWith("/api/auth")
-                || path.startsWith("/api/admin/auth")
-                || path.startsWith("/api/manager/auth")
-                || path.startsWith("/api/tenant/auth")
-                || path.startsWith("/api/public")
-                || request.getMethod().equalsIgnoreCase("OPTIONS");
+        return path.equals("/health")
+        	||path.equals("/")
+        	||path.equals("/api/public/health")
+            || path.startsWith("/error")
+            || path.startsWith("/api/auth")
+            || path.startsWith("/api/admin/auth")
+            || path.startsWith("/api/manager/auth")
+            || path.startsWith("/api/tenant/auth")
+            || request.getMethod().equalsIgnoreCase("OPTIONS");
     }
 
     @Override
@@ -59,10 +48,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String header = request.getHeader("Authorization");
 
+        // No token → let Spring Security decide based on config
         if (!StringUtils.hasText(header) || !header.startsWith("Bearer ")) {
-            chain.doFilter(request, response);
+            chain.doFilter(request, response); 
             return;
-        }
+        } 
 
         String token = header.substring(7);
 
@@ -71,33 +61,33 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        Long tenantId = jwtService.extractTenantId(token);
-        Long ownerId = jwtService.extractOwnerId(token);
-        Long adminId = jwtService.extractAdminId(token);
+        // ---- EXTRACT CONTEXT ----
+        Long tenantId  = jwtService.extractTenantId(token);
+        Long ownerId   = jwtService.extractOwnerId(token);
+        Long adminId   = jwtService.extractAdminId(token);
         Long managerId = jwtService.extractManagerId(token);
 
         String username = jwtService.extractUsername(token);
-        String role = jwtService.extractRole(token);
+        String role     = jwtService.extractRole(token);
 
-        if (tenantId != null) request.setAttribute("tenantId", tenantId);
-        if (ownerId != null) request.setAttribute("ownerId", ownerId);
-        if (adminId != null) request.setAttribute("adminId", adminId);
+        if (tenantId != null)  request.setAttribute("tenantId", tenantId);
+        if (ownerId != null)   request.setAttribute("ownerId", ownerId);
+        if (adminId != null)   request.setAttribute("adminId", adminId);
         if (managerId != null) request.setAttribute("managerId", managerId);
 
         request.setAttribute("permissions", jwtService.extractPermissions(token));
         request.setAttribute("allowedPgIds", jwtService.extractAllowedPgIdsFromToken(token));
 
+        // ---- AUTHORITIES ----
         List<SimpleGrantedAuthority> authorities = new ArrayList<>();
         if (role != null) {
             authorities.add(new SimpleGrantedAuthority("ROLE_" + role));
         }
 
-        UsernamePasswordAuthenticationToken auth =
+        UsernamePasswordAuthenticationToken authentication =
                 new UsernamePasswordAuthenticationToken(username, null, authorities);
 
-        auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-        SecurityContextHolder.getContext().setAuthentication(auth);
-
+        SecurityContextHolder.getContext().setAuthentication(authentication);
         chain.doFilter(request, response);
     }
 }

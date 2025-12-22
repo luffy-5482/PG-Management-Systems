@@ -6,10 +6,14 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import jakarta.servlet.http.HttpServletResponse;
 
 @Configuration
 public class SecurityConfiguration {
@@ -26,87 +30,113 @@ public class SecurityConfiguration {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> csrf.disable())
-                .authorizeHttpRequests(auth -> auth
+            .csrf(csrf -> csrf.disable())
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
-                		.requestMatchers("/error").permitAll()
-                		.requestMatchers("/error/**").permitAll()
-                		.requestMatchers("/api/public/health").permitAll()
-                		.requestMatchers("/").permitAll()
+            // ---- STATELESS ----
+            .sessionManagement(session ->
+                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            )
 
+            // ---- IMPORTANT - DISABLE REQUEST CACHE ----
+            .requestCache(cache -> cache.disable())
 
+            // ---- CRITICAL: Change this from HttpStatusEntryPoint ----
+            .exceptionHandling(ex -> ex
+                .authenticationEntryPoint((request, response, authException) -> {
+                    // For health checks, just return 200
+                    if (request.getRequestURI().equals("/health") || 
+                        request.getRequestURI().equals("/api/public/health") ||
+                        request.getRequestURI().equals("/")) {
+                        response.setStatus(HttpServletResponse.SC_OK);
+                        response.getWriter().write("OK");
+                    } else {
+                        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    } 
+                })
+            )
 
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+            // ---- AUTH RULES ----
+            .authorizeHttpRequests(auth -> auth
+                // PUBLIC
+                .requestMatchers(
+                    "/",
+                    "/health",
+                    "/error",
+                    "/error/**",
+                    "/api/public/**",
+                    "/api/auth/**",
+                    "/api/admin/auth/**",
+                    "/api/manager/auth/**",
+                    "/api/tenant/auth/**",
+                    "/swagger-ui.html",
+                    "/swagger-ui/**",
+                    "/v3/api-docs/**"
+                ).permitAll()
 
-                        .requestMatchers(
-                                "/api/auth/**",
-                                "/api/admin/auth/**",
-                                "/api/manager/auth/**",
-                                "/api/tenant/auth/**",
-                                "/api/public/**",
-                                "/swagger-ui.html",
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**"
-                        ).permitAll()
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                        .requestMatchers("/api/tenant/self/**").hasRole("TENANT")
-                        .requestMatchers("/api/tenant/**").hasAnyRole("OWNER","MANAGER","ADMIN")
+                // TENANT
+                .requestMatchers("/api/tenant/self/**").hasRole("TENANT")
+                .requestMatchers("/api/tenant/**").hasAnyRole("OWNER","MANAGER","ADMIN")
 
-                        .requestMatchers(HttpMethod.GET, "/api/pgs/**").hasAnyRole("OWNER","ADMIN","MANAGER")
-                        .requestMatchers(HttpMethod.POST, "/api/pgs/**").hasRole("OWNER")
-                        .requestMatchers(HttpMethod.PUT, "/api/pgs/**").hasRole("OWNER")
-                        .requestMatchers(HttpMethod.PATCH, "/api/pgs/**").hasRole("OWNER")
-                        .requestMatchers(HttpMethod.DELETE, "/api/pgs/**").hasRole("OWNER")
+                // PG
+                .requestMatchers(HttpMethod.GET, "/api/pgs/**")
+                    .hasAnyRole("OWNER","ADMIN","MANAGER")
+                .requestMatchers("/api/pgs/**").hasRole("OWNER")
 
-                        .requestMatchers(HttpMethod.GET, "/api/rooms/**").hasAnyRole("OWNER","MANAGER")
-                        .requestMatchers(HttpMethod.POST, "/api/rooms/**").hasRole("OWNER")
-                        .requestMatchers(HttpMethod.PUT, "/api/rooms/**").hasRole("OWNER")
-                        .requestMatchers(HttpMethod.PATCH, "/api/rooms/**").hasRole("OWNER")
-                        .requestMatchers(HttpMethod.DELETE, "/api/rooms/**").hasRole("OWNER")
+                // ROOMS
+                .requestMatchers(HttpMethod.GET, "/api/rooms/**")
+                    .hasAnyRole("OWNER","MANAGER")
+                .requestMatchers("/api/rooms/**").hasRole("OWNER")
 
-                        .requestMatchers(HttpMethod.GET, "/api/floors/**").hasAnyRole("OWNER","MANAGER")
-                        .requestMatchers(HttpMethod.POST, "/api/floors/**").hasRole("OWNER")
-                        .requestMatchers(HttpMethod.PUT, "/api/floors/**").hasRole("OWNER")
-                        .requestMatchers(HttpMethod.PATCH, "/api/floors/**").hasRole("OWNER")
-                        .requestMatchers(HttpMethod.DELETE, "/api/floors/**").hasRole("OWNER")
+                // FLOORS
+                .requestMatchers(HttpMethod.GET, "/api/floors/**")
+                    .hasAnyRole("OWNER","MANAGER")
+                .requestMatchers("/api/floors/**").hasRole("OWNER")
 
-                        .requestMatchers("/api/manager/**").hasAnyRole("MANAGER","OWNER")
-                        .requestMatchers("/api/staff/**").hasAnyRole("OWNER","MANAGER")
+                // MANAGER / STAFF
+                .requestMatchers("/api/manager/**").hasAnyRole("MANAGER","OWNER")
+                .requestMatchers("/api/staff/**").hasAnyRole("OWNER","MANAGER")
 
-                        .requestMatchers("/api/owners/**").hasRole("OWNER")
-                        .requestMatchers("/api/amenities/**").hasRole("OWNER")
-                        .requestMatchers("/api/property-photos/**").hasRole("OWNER")
-                        .requestMatchers("/api/owner/admins/**").hasRole("OWNER")
+                // OWNER
+                .requestMatchers(
+                    "/api/owners/**",
+                    "/api/amenities/**",
+                    "/api/property-photos/**",
+                    "/api/owner/admins/**"
+                ).hasRole("OWNER")
 
-                        .requestMatchers("/api/admins/me").hasAnyRole("ADMIN","OWNER")
+                // ADMIN
+                .requestMatchers("/api/admins/me")
+                    .hasAnyRole("ADMIN","OWNER")
 
-                        .anyRequest().authenticated()
-                )
-                .addFilterBefore(
-                        jwtAuthenticationFilter(),
-                        org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class
-                );
+                .anyRequest().authenticated()
+            )
+
+            // ---- JWT FILTER ----
+            .addFilterBefore(
+                jwtAuthenticationFilter(),
+                UsernamePasswordAuthenticationFilter.class
+            );
 
         return http.build();
     }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
-
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOriginPatterns(List.of("*"));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        config.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setExposedHeaders(List.of("Authorization"));
-        config.setAllowCredentials(true);
+        config.setAllowCredentials(false);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
-
         return source;
     }
 }
