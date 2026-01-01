@@ -23,4 +23,8 @@ public interface PgService {
     PgResponse createPg(PgRequest pgRequest);
     PgResponse updatePg(Long id, PgRequest pgRequest);
     void deletePg(Long id);
+    
+    List<PgResponse> getAllPgsPublic();
+    PgResponse getPgPublicById(Long id);
+
 }

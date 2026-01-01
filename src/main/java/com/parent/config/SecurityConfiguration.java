@@ -72,6 +72,7 @@ public class SecurityConfiguration {
                     "/api/admin/auth/**",
                     "/api/manager/auth/**",
                     "/api/tenant/auth/**",
+                    "/api/tenant/register/**",
                     "/swagger-ui.html",
                     "/swagger-ui/**",
                     "/v3/api-docs/**"
@@ -113,6 +114,10 @@ public class SecurityConfiguration {
                 // ADMIN
                 .requestMatchers("/api/admins/me")
                     .hasAnyRole("ADMIN","OWNER")
+                   
+                    .requestMatchers("/api/tenant/self/**").hasRole("TENANT")
+                    .requestMatchers("/api/tenant/**").hasAnyRole("OWNER","MANAGER","ADMIN")
+
 
                 .anyRequest().authenticated()
             )

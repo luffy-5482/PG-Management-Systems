@@ -75,10 +75,6 @@ public final class SecurityUtils {
         return ids == null ? Set.of() : (Set<Long>) ids;
     }
 
-    // ------------------------------------------------------------
-    // ✔ Generic attribute accessor (NEW)
-    // Used by TenantServiceImpl to get additional attributes
-    // ------------------------------------------------------------
     public static Object getRequestAttribute(String key) {
         HttpServletRequest req = getRequest();
         return (req == null) ? null : req.getAttribute(key);

@@ -9,7 +9,7 @@ public class OwnerResponse {
 	private String email;
 	private String phoneNumber;
 	private String gender;
-	private List<PgResponse> pgs; // nested PGs with full subparts
+	private List<PgResponse> pgs; 
 
 	public OwnerResponse() {
 	}

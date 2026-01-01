@@ -41,7 +41,7 @@ public class PgController {
     // ---------------------------------------------------------
     @GetMapping
     public List<PgResponse> getAllPgs(HttpServletRequest request) {
-
+    	
         Long ownerId = jwtService.extractOwnerIdFromRequest(request);
         Long managerId = jwtService.extractManagerIdFromRequest(request);
 

@@ -1,8 +1,8 @@
 package com.parent.tenant.dto;
 
-public class TenantAuthRequest {
-    public String email;
-    public String password;
+public class TenantLoginRequest {
+    private String email;
+    private String password;
 	public String getEmail() {
 		return email;
 	}
@@ -15,5 +15,6 @@ public class TenantAuthRequest {
 	public void setPassword(String password) {
 		this.password = password;
 	}
+
     
 }

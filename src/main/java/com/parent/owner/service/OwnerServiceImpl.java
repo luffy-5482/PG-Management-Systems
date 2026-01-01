@@ -78,7 +78,7 @@ public class OwnerServiceImpl implements OwnerService {
         Long ownerId = getOwnerId();
 
         Owner owner = ownerRepository.findById(ownerId)
-                .orElseThrow(() -> new RuntimeException("Owner not found"));
+                .orElseThrow(() -> new RuntimeException("Owner not found")); 
 
         return List.of(toOwnerRes(owner));
     }

@@ -24,8 +24,7 @@ import jakarta.persistence.UniqueConstraint;
 public class Owner implements UserDetails {
 
 	@Id
-	private Long id; // 🔥 MANUAL ID — NO AUTO INCREMENT
-
+	private Long id; 
 	private String fullName;
 
 	@Column(unique = true)
@@ -129,27 +128,27 @@ public class Owner implements UserDetails {
 		return this.email; // email used as login username
 	}
 
-	@Override
-	@JsonIgnore
-	public boolean isAccountNonExpired() {
-		return true;
-	}
-
-	@Override
-	@JsonIgnore
-	public boolean isAccountNonLocked() {
-		return true;
-	}
-
-	@Override
-	@JsonIgnore
-	public boolean isCredentialsNonExpired() {
-		return true;
-	}
-
-	@Override
-	@JsonIgnore
-	public boolean isEnabled() {
-		return true;
-	}
+//	@Override
+//	@JsonIgnore
+//	public boolean isAccountNonExpired() {
+//		return true;
+//	}
+//
+//	@Override
+//	@JsonIgnore
+//	public boolean isAccountNonLocked() {
+//		return true;
+//	}
+//
+//	@Override
+//	@JsonIgnore
+//	public boolean isCredentialsNonExpired() {
+//		return true;
+//	}
+//
+//	@Override
+//	@JsonIgnore
+//	public boolean isEnabled() {
+//		return true;
+//	}
 }

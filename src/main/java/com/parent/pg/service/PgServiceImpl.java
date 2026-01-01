@@ -207,14 +207,14 @@ public class PgServiceImpl implements PgService {
 		if (ownerId != null) {
 			return pgRepository.findByOwnerId(ownerId)
 					.stream()
-					.map(this::toPgResponse)
+					.map(this::toPgResponse) 
 					.collect(Collectors.toList());
 		}
  
 		throw new RuntimeException("Unauthorized access");
 	}
 
-	// ---------------------- GET PG BY ID (OWNER or MANAGER restricted) ----------------------
+	// ---------------------- GET PG BY ID (OWNER or MANAGER restricted) ---------------------- 
 
 	@Override
 	public PgResponse getPgById(Long id, HttpServletRequest request) {
@@ -758,5 +758,22 @@ public class PgServiceImpl implements PgService {
 	    return toPgResponse(pg);
 	}
 
+	// -------------------------------------------------
+	// PUBLIC PGs (READ ONLY)
+	// -------------------------------------------------
+	@Override
+	public List<PgResponse> getAllPgsPublic() {
+	    return pgRepository.findAll()
+	            .stream()
+	            .map(this::toPgResponse)
+	            .toList();
+	}
+
+	@Override
+	public PgResponse getPgPublicById(Long id) {
+	    PgEntity pg = pgRepository.findById(id)
+	            .orElseThrow(() -> new RuntimeException("PG not found"));
+	    return toPgResponse(pg);
+	}
 
 }

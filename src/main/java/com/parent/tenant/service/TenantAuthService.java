@@ -1,55 +1,54 @@
 package com.parent.tenant.service;
-
-import com.parent.config.JwtService;
-import com.parent.config.exception.ResourceNotFoundException;
-import com.parent.tenant.dto.TenantAuthRequest;
-import com.parent.tenant.dto.TenantAuthResponse;
-import com.parent.tenant.model.TenantEntity;
-import com.parent.tenant.repository.TenantRepository;
-
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
-import java.util.Map;
+import com.parent.tenant.enums.TenantStatus;
+import com.parent.tenant.model.TenantAccount;
+import com.parent.tenant.repository.TenantAccountRepository;
+
+import jakarta.transaction.Transactional;
 
 @Service
 public class TenantAuthService {
 
-    private final TenantRepository repo;
-    private final PasswordEncoder encoder;
-    private final JwtService jwt;
+    private final TenantAccountRepository accountRepo;
+    private final PasswordEncoder passwordEncoder;
 
-    public TenantAuthService(TenantRepository repo, PasswordEncoder encoder, JwtService jwt) {
-        this.repo = repo;
-        this.encoder = encoder;
-        this.jwt = jwt;
+    public TenantAuthService(
+            TenantAccountRepository accountRepo,
+            PasswordEncoder passwordEncoder
+    ) {
+        this.accountRepo = accountRepo;
+        this.passwordEncoder = passwordEncoder;
     }
 
-    public TenantAuthResponse login(TenantAuthRequest req) {
+    public TenantAccount login(String email, String rawPassword) {
 
-        TenantEntity t = repo.findByEmail(req.email)
-                .orElseThrow(() -> new ResourceNotFoundException("Tenant not found"));
+        TenantAccount account = accountRepo.findByEmail(email)
+                .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
 
-        if (!encoder.matches(req.password, t.getPassword())) {
-            throw new RuntimeException("Invalid password");
+        if (account.getStatus() != TenantStatus.ACTIVE)
+            throw new IllegalStateException("Account not active");
+
+        if (!passwordEncoder.matches(rawPassword, account.getPassword()))
+            throw new BadCredentialsException("Invalid credentials");
+
+        return account;
+    }
+    @Transactional
+    public void changePassword(Long tenantId, String currentPassword, String newPassword) {
+        TenantAccount account = accountRepo.findById(tenantId)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid tenant"));
+
+        if (!passwordEncoder.matches(currentPassword, account.getPassword())) {
+            throw new IllegalArgumentException("Current password is incorrect");
         }
 
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("role", "TENANT");
-        claims.put("tenantId", t.getId());
-        claims.put("pgId", t.getPgId());
-        claims.put("roomId", t.getRoom().getId());
+        account.setPassword(passwordEncoder.encode(newPassword));
+        accountRepo.save(account);
 
-        String token = jwt.generateToken(t.getEmail(), claims);
-
-        TenantAuthResponse res = new TenantAuthResponse();
-        res.token = token;
-        res.tenantId = t.getId();
-        res.name = t.getName();
-        res.roomId = t.getRoom().getId();
-        res.pgId = t.getPgId();
-
-        return res;
+        // Optional: log activity
     }
+    
 }

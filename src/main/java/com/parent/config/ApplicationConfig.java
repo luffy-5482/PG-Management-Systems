@@ -30,10 +30,9 @@ public class ApplicationConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+        return new BCryptPasswordEncoder(); 
+    } 
 
-    @SuppressWarnings("deprecation")
 	@Bean
     public AuthenticationProvider authenticationProvider() { 
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
